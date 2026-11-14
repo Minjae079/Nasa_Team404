@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMetadata, containsPoint, SCENE_INDEX } from '../lib/sceneBundle.js';
+import { parseMetadata, containsPoint, SCENE_INDEX, MOCK_SCENE_INDEX } from '../lib/sceneBundle.js';
 import { publishSceneBundle, validateBundle } from '../tools/publish-scene-bundle.mjs';
 import { getSceneResults } from '../api/scene-results.js';
 
@@ -78,4 +78,33 @@ test('failed upload never publishes partial bundle; metadata mismatch cannot sig
   ready.files.set(`results/${metadata.id}/metadata.json`, JSON.stringify({ ...metadata, bounds: [0, 0, 1, 1] }));
   await assert.rejects(getSceneResults(new Request('https://site/api/scene-results?id=chicago-run-1'), ready.client), /does not match/);
   assert.equal(ready.signed.length, 0);
+});
+
+
+test('mock bundles require explicit publication opt-in and remain hidden from normal queries', async () => {
+  const mock = { ...metadata, id: 'mock-storage-test', title: '[MOCK] Connection test', synthetic: true, model_version: 'mock-v1' };
+  const s = storage();
+  await assert.rejects(publishSceneBundle(s.client, mock, images), /explicit mock mode/);
+  assert.equal(s.uploads.length, 0);
+  for (const patch of [{id:'normal-id'}, {title:'Unmarked test'}, {model_version:'production-v1'}]) {
+    assert.throws(() => validateBundle({...mock,...patch},images,{allowMock:true}));
+  }
+  await publishSceneBundle(s.client, mock, images, {allowMock:true});
+  assert.equal(JSON.parse(s.files.get('results/mock-storage-test/metadata.json')).synthetic,true);
+  assert.equal(s.files.has(SCENE_INDEX),false);
+  assert.equal(s.files.has(MOCK_SCENE_INDEX),true);
+  const query = new Request('https://site/api/scene-results?lat=41.5&lng=-87.5');
+  const hidden = await (await getSceneResults(query,s.client,{allowMock:false})).json();
+  assert.equal(hidden.state,'empty');
+  assert.equal(s.signed.length,0);
+  const visible = await (await getSceneResults(query,s.client,{allowMock:true})).json();
+  assert.equal(visible.state,'ready');
+  assert.equal(visible.result.synthetic,true);
+  assert.equal(Object.keys(visible.result.images).length,3);
+  await publishSceneBundle(s.client,metadata,images);
+  const real = await (await getSceneResults(query,s.client,{allowMock:false})).json();
+  assert.equal(real.result.id,metadata.id);
+  assert.equal(real.available.length,1);
+  assert.equal(JSON.parse(s.files.get(SCENE_INDEX)).results.length,1);
+  assert.equal(JSON.parse(s.files.get(MOCK_SCENE_INDEX)).results.length,1);
 });

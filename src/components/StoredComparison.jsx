@@ -68,12 +68,12 @@ export function StoredComparison({ point }) {
   const result = state.result;
   return <div className="stored-comparison">
     <div className="compare-status" role="status" aria-live="polite" data-kind={state.kind}>
-      {messages[state.kind] || messages.error}
+      {state.result?.synthetic ? 'MOCK DATA · Connection test only. Not satellite imagery or a real model analysis.' : messages[state.kind] || messages.error}
       {state.kind !== 'loading' && <button className="stored-refresh" type="button" onClick={() => refresh()}>Refresh</button>}
     </div>
     {result && <>
       <div className="compare-chooser">
-        <label htmlFor="storedResultSelect">Published analysis</label>
+        <label htmlFor="storedResultSelect">{result.synthetic ? 'Test bundle' : 'Published analysis'}</label>
         <select id="storedResultSelect" value={result.id} onChange={event => {
           automaticRetry.current = false; setShowChange(false); setSelectedId(event.target.value);
         }}>
@@ -90,7 +90,7 @@ export function StoredComparison({ point }) {
           const label = `${result.title} · ${imageKey} · ${result[side].observed_at.slice(0, 10)}`;
           return <article className="sar-photo-panel" key={side}>
             <div className="sar-photo-heading"><div><span className="sar-kicker">{imageKey === 'change_overlay' ? '02 / CHANGE IMAGE' : side === 'before' ? '01 / BEFORE' : '02 / AFTER'}</span>
-              <h3>{result[side].observed_at.slice(0, 10)}</h3></div><span className="sar-photo-pill">MODEL OUTPUT</span></div>
+              <h3>{result[side].observed_at.slice(0, 10)}</h3></div><span className="sar-photo-pill">{result.synthetic ? 'MOCK DATA' : 'MODEL OUTPUT'}</span></div>
             <StoredImage key={`${result.id}:${imageKey}:${revision}`} url={result.images[imageKey]} label={label} onFailure={() => refresh(true)} onExpand={setPreview} />
             <div className="sar-file-meta"><span title={result[side].source_scene_id}>{result[side].source_scene_id}</span><span>{result.model_version}</span></div>
           </article>;

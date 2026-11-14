@@ -4,10 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { getSupabaseServer } from '../lib/supabaseServer.js';
-import { SCENE_INDEX, IMAGE_NAMES, parseMetadata, readSceneIndex, parseSceneIndex } from '../lib/sceneBundle.js';
+import { SCENE_INDEX, MOCK_SCENE_INDEX, IMAGE_NAMES, parseMetadata, readSceneIndex, parseSceneIndex } from '../lib/sceneBundle.js';
 
-export function validateBundle(input, images) {
-  const metadata = parseMetadata(input);
+export function validateBundle(input, images, options = {}) {
+  const metadata = parseMetadata(input, options);
   for (const name of IMAGE_NAMES) {
     const bytes = images[name];
     if (!Buffer.isBuffer(bytes) || bytes.length < 45 ||
@@ -19,15 +19,16 @@ export function validateBundle(input, images) {
   }
   return metadata;
 }
-export async function publishSceneBundle(client, input, images) {
-  const metadata = validateBundle(input, images);
+export async function publishSceneBundle(client, input, images, options = {}) {
+  const metadata = validateBundle(input, images, options);
   const check = await client.storage.getBucket('sarscope-data');
   if (check.error || check.data?.public !== false) throw new Error('Private sarscope-data bucket required');
   const bucket = client.storage.from('sarscope-data');
-  const rows = await readSceneIndex(bucket);
+  const indexPath = metadata.synthetic ? MOCK_SCENE_INDEX : SCENE_INDEX;
+  const rows = await readSceneIndex(bucket, { allowMock: !!metadata.synthetic, indexPath });
   if (rows.some(row => row.metadata.id === metadata.id)) throw new Error('Result ID already exists; use a new ID');
   const index = { version: 1, results: [...rows, { published: true, metadata }] };
-  parseSceneIndex(index);
+  parseSceneIndex(index, { allowMock: true });
   const indexBytes = Buffer.from(JSON.stringify(index, null, 2));
   if (indexBytes.length > 8000000) throw new Error('Scene index too large');
   const prefix = `results/${metadata.id}`;
@@ -39,19 +40,20 @@ export async function publishSceneBundle(client, input, images) {
     });
     if (result.error) throw new Error(`Upload failed: ${name}. Index unchanged. Inspect partial files; retry with a new ID.`);
   }
-  const saved = await bucket.upload(SCENE_INDEX, indexBytes, { contentType: 'application/json', upsert: true });
+  const saved = await bucket.upload(indexPath, indexBytes, { contentType: 'application/json', upsert: true });
   if (saved.error) throw new Error('Files uploaded but index update failed. Inspect files before retrying with a new ID.');
   return metadata.id;
 }
 async function main() {
-  const { values } = parseArgs({ options: { dir: { type: 'string' }, publish: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({ options: { dir: { type: 'string' }, publish: { type: 'boolean', default: false }, 'allow-mock': { type: 'boolean', default: false } } });
   if (!values.dir) throw new Error('Use --dir OUTPUT_FOLDER [--publish]');
   const input = JSON.parse((await fs.readFile(path.join(values.dir, 'metadata.json'), 'utf8')).replace(/^\uFEFF/, ''));
   const images = Object.fromEntries(await Promise.all(IMAGE_NAMES.map(async name => [name, await fs.readFile(path.join(values.dir, name))])));
-  const metadata = validateBundle(input, images);
+  const options = { allowMock: values['allow-mock'] };
+  const metadata = validateBundle(input, images, options);
   if (!values.publish) { console.log(`Validated ${metadata.id}: 3 PNGs + metadata.json. No upload. Add --publish to publish.`); return; }
   if (existsSync('.env.local')) process.loadEnvFile('.env.local');
-  console.log('Published:', await publishSceneBundle(getSupabaseServer(), input, images));
+  console.log('Published:', await publishSceneBundle(getSupabaseServer(), input, images, options));
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => { console.error(error.message); process.exitCode = 1; });

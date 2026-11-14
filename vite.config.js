@@ -19,7 +19,7 @@ function privateSourceMiddleware(req, res, next) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // Server-only environment; Vite only exposes VITE_ variables to the client.
-  for (const key of ['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'SARSCOPE_PUBLIC_ANALYSES']) {
+  for (const key of ['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'SARSCOPE_PUBLIC_ANALYSES', 'SARSCOPE_ALLOW_MOCK_DATA']) {
     if (process.env[key] === undefined && env[key] !== undefined) process.env[key] = env[key];
   }
   return {

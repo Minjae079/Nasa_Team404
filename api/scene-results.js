@@ -1,7 +1,7 @@
 import { getSupabaseServer, apiJson, databaseError } from '../lib/supabaseServer.js';
-import { readSceneIndex, parseMetadata, containsPoint, InvalidSceneBundle, IMAGE_NAMES } from '../lib/sceneBundle.js';
+import { MOCK_SCENE_INDEX, readSceneIndex, parseMetadata, containsPoint, InvalidSceneBundle, IMAGE_NAMES } from '../lib/sceneBundle.js';
 
-export async function getSceneResults(request, client) {
+export async function getSceneResults(request, client, { allowMock = process.env.SARSCOPE_ALLOW_MOCK_DATA === 'true' } = {}) {
   const params = new URL(request.url).searchParams;
   const rawLat = params.get('lat'), rawLng = params.get('lng'), id = params.get('id');
   const lat = Number(rawLat), lng = Number(rawLng);
@@ -11,7 +11,10 @@ export async function getSceneResults(request, client) {
     return apiJson({ error: 'INVALID_QUERY' }, 400);
   }
   const bucket = client.storage.from('sarscope-data');
-  const rows = (await readSceneIndex(bucket)).filter(row => row.published &&
+  const indexed = await readSceneIndex(bucket);
+  if (allowMock) indexed.push(...await readSceneIndex(bucket, { allowMock: true, indexPath: MOCK_SCENE_INDEX }));
+  const rows = indexed.filter(row => row.published &&
+    (!row.metadata.synthetic || allowMock) &&
     (!hasPoint || containsPoint(row.metadata, lat, lng)))
     .sort((a, b) => Date.parse(b.metadata.after.observed_at) - Date.parse(a.metadata.after.observed_at) || a.metadata.id.localeCompare(b.metadata.id));
   const selected = (id ? rows.find(row => row.metadata.id === id) : rows[0])?.metadata;
@@ -22,7 +25,7 @@ export async function getSceneResults(request, client) {
   if (downloaded.data.size > 64000) throw new InvalidSceneBundle('Metadata too large');
   let value;
   try { value = JSON.parse(await downloaded.data.text()); } catch { throw new InvalidSceneBundle('Invalid metadata JSON'); }
-  const metadata = parseMetadata(value);
+  const metadata = parseMetadata(value, { allowMock });
   if (JSON.stringify(metadata) !== JSON.stringify(selected)) throw new InvalidSceneBundle('Metadata does not match index');
   const images = {};
   for (const name of IMAGE_NAMES) {

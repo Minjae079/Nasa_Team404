@@ -78,3 +78,25 @@ API는 원본 이미지 전체를 프록시하지 않고 브라우저가 Storage
 단위/통합 테스트는 가상 Storage로 네 파일 게시, 부분 업로드 실패, 기존 목록 보존,
 좌표 검색, 날짜 선택, 잘못된 메타데이터 차단을 검증합니다.
 실제 모델 파일과 서버 키 없이는 실제 Supabase 업로드와 PNG 표시 완료를 확인할 수 없습니다.
+
+
+## 목데이터로 실제 Storage 연결 테스트
+
+실제 결과와 혼동하지 않도록 synthetic: true, mock- ID/모델 버전, [MOCK] 제목을 함께 사용합니다.
+일반 게시 명령은 합성 데이터를 계속 거부합니다. --allow-mock을 명시해야 게시할 수 있습니다.
+목데이터가 등록돼 있어도 SARSCOPE_ALLOW_MOCK_DATA=true인 서버에서만 조회 결과에 포함됩니다.
+배포 환경에는 이 설정을 추가하지 않으면 테스트 결과가 표시되지 않습니다.
+
+Python + Pillow 환경에서 예제 생성:
+
+    python tools/make-mock-scene.py --dir ml-output/mock-storage-20261114-001 --id mock-storage-20261114-001
+    node tools/publish-scene-bundle.mjs --dir ml-output/mock-storage-20261114-001 --allow-mock
+    node tools/publish-scene-bundle.mjs --dir ml-output/mock-storage-20261114-001 --allow-mock --publish
+
+동일 ID는 덮어쓰지 않습니다. 이미 게시했다면 새 mock- ID와 폴더를 사용합니다.
+로컬 .env.local의 SARSCOPE_ALLOW_MOCK_DATA=true를 설정한 뒤 서버를 재시작하고
+홈의 Explore Illinois Tech를 누릅니다. 각 PNG와 화면에는 MOCK 표시가 있습니다.
+테스트 후 이 설정을 false로 바꾸고 서버를 재시작하면 목데이터는 조회에서 제외됩니다.
+파일은 private sarscope-data/results/mock-분석ID/에 남습니다. 이 테스트는 SQL 테이블을 만들지 않습니다.
+
+목데이터의 검색 목록은 results/mock-scenes.json에 분리합니다. 실제 결과 목록 results/scenes.json에는 등록하지 않습니다. 목데이터 조회를 켠 서버만 두 목록을 함께 읽습니다.
