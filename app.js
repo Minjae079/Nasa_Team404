@@ -8,7 +8,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const PHOTO_ZOOM = 2.5;
   // 수정된 부분: duration in milliseconds for View local map.
   const LOCAL_MAP_FLIGHT_MS = 2400;
-  const SCENE_FLIGHT_MS = 1500;
+  const SCENE_FLIGHT_MS = 1200;
   const $ = id => document.getElementById(id);
   const globeScene = $("globeScene");
   globeScene.style?.setProperty("--scene-motion-duration", `${SCENE_FLIGHT_MS}ms`);

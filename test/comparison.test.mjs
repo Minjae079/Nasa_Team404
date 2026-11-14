@@ -332,13 +332,13 @@ test('home camera padding follows responsive layout and clears for result select
   smooth.controller.initGlobe();
   const smoothMap = smooth.controller.state().map;
   await smooth.controller.openComparison(35,130);
-  assert.equal(smoothMap.flight.duration,1500);
+  assert.equal(smoothMap.flight.duration,1200);
   assert.equal(smoothMap.flight.padding.left,0);
   assert.equal(smoothMap.flight.easing(0),0);
   assert.equal(smoothMap.flight.easing(1),1);
   assert.ok(smoothMap.flight.easing(0.1) < 0.1);
   smooth.controller.goHome();
-  assert.equal(smoothMap.flight.duration,1500);
+  assert.equal(smoothMap.flight.duration,1200);
   assert.equal(smoothMap.flight.padding.left,410);
   assert.equal(smooth.frames.size,0);
   smoothMap.events.moveend();
