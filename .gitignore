@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.vercel/
+*.log
+__pycache__/
+ml-output/
+demo-data/
+*.pt
+*.pth
+*.npy
+*.npz
+*.h5
+*.hdf5

@@ -1,0 +1,685 @@
+/* Real NASA ASF browse preview comparison UI. Responsive and self-contained. */
+/* 수정된 부분: remove obsolete full-screen layout overrides; retain the floating comparison UI. */
+.scene-compare{gap:18px;color:#f0f6f3}
+.scene-compare[hidden]{display:none!important}
+.compare-top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px}
+.compare-top .compare-title{text-align:center}
+.compare-title h2{font-size:clamp(20px,2.3vw,34px);line-height:1.2;margin:5px 0 4px;letter-spacing:-.025em}
+.compare-title p{font-size:12px;letter-spacing:.09em;color:#a6b9be;margin:0}
+.compare-status{padding:12px 16px;border:1px solid #3b565c;border-radius:12px;background:#12252c;color:#c0e2e4;font-size:13px;min-height:44px}
+.compare-status[data-kind='empty'],.compare-status[data-kind='error']{border-color:#876b43;color:#efcfaa}
+.compare-status[data-kind='ready']{border-color:#456958;color:#d6ebd5}
+.compare-chooser{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#b8cfd2;font-size:12px}
+.compare-chooser[hidden]{display:none!important}
+.compare-chooser select{min-width:210px;max-width:100%;flex:1 1 420px;padding:12px 15px;background:#122731;color:#f2f7f6;border:1px solid #48626a;border-radius:10px;font:inherit;font-size:12px}
+.sar-compare-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;flex:1}
+.sar-compare-grid[hidden]{display:none!important}
+.sar-photo-panel{min-width:0;display:flex;flex-direction:column;border:1px solid #2b4854;background:#0d1e27;border-radius:16px;padding:16px;box-shadow:0 12px 35px #0002;gap:12px}
+.sar-photo-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sar-kicker{font-size:10px;letter-spacing:.18em;color:#a2c6c6;font-weight:700}
+.sar-photo-heading h3{margin:4px 0 0;font-size:clamp(18px,2vw,26px);color:#f6fff5}
+.sar-photo-pill{border:1px solid #45666d;padding:6px 8px;border-radius:50px;color:#cce9dc;white-space:nowrap;font-size:10px;letter-spacing:.06em}
+.sar-image-frame{position:relative;display:flex;align-items:center;justify-content:center;min-height:280px;aspect-ratio:1.3/1;border:1px solid #304f5c;border-radius:11px;overflow:hidden;background:linear-gradient(120deg,#14242c,#243943)}
+.sar-image-frame img{display:block;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
+.sar-image-frame img[hidden]{display:none}
+.sar-image-error{position:absolute;max-width:80%;font-size:14px;text-align:center;color:#f3c4ab}
+.sar-image-error[hidden]{display:none}
+.sar-file-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:#b3c3c9;font-size:12px}
+.sar-file-meta a{color:#cceca5;text-decoration:none}
+.sar-file-meta a:hover{text-decoration:underline}
+.compare-footer-note{color:#a1b6c0;font-size:12px;line-height:1.65;max-width:1100px}
+.compare-footer-note strong{color:#dff8da;margin-right:8px}
+@media(max-width:850px){
+ .scene-compare{gap:14px}
+ .compare-top{grid-template-columns:1fr auto;gap:9px}
+ .compare-top .compare-title{grid-column:1/-1;grid-row:2;text-align:left;margin-top:6px}
+ .compare-top .btn{font-size:12px;max-width:100%}
+ .sar-compare-grid{grid-template-columns:1fr;gap:14px}
+ .sar-image-frame{min-height:230px;aspect-ratio:4/3}
+ .compare-chooser{display:grid;grid-template-columns:1fr;gap:8px}
+ .compare-chooser select{width:100%;flex:auto}
+ .compare-chooser span{font-size:11px}
+}
+/* ===========================================
+   SARSCOPE - Floating SAR Speech Bubble UI
+   =========================================== */
+
+/* 비교 모드에서는 기존 소개 UI 숨기기 */
+.scene-globe.is-comparing .hero-content,
+.scene-globe.is-comparing .scene-rail,
+.scene-globe.is-comparing .planet-label,
+.scene-globe.is-comparing .view-status,
+.scene-globe.is-comparing .interaction-guide {
+  display: none;
+}
+
+/* 지구본 위에 투명한 비교 UI 표시 */
+.scene-globe .scene-compare {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+
+  display: block;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+
+  background: transparent;
+
+  /* 빈 공간에서는 지구본 조작 가능 */
+  pointer-events: none;
+}
+
+.scene-globe .scene-compare[hidden] {
+  display: none !important;
+}
+
+/* 선택한 지역 정보 */
+.scene-globe .compare-top {
+  position: absolute;
+  top: 98px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, 42vw);
+
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+
+  pointer-events: auto;
+}
+
+.scene-globe .compare-title {
+  grid-column: 1 / -1;
+  grid-row: 1;
+
+  padding: 12px;
+  text-align: center;
+
+  border: 1px solid #6babb2;
+  border-radius: 16px;
+  background: rgba(8, 23, 32, 0.9);
+  backdrop-filter: blur(12px);
+}
+
+.scene-globe .compare-title h2 {
+  font-size: 19px;
+}
+
+/* 닫기 버튼 */
+.scene-globe #compareBack {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 11px;
+}
+
+
+/* 날짜 비교군 선택 */
+.scene-globe .compare-chooser {
+  position: absolute;
+  top: 222px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: min(420px, 40vw);
+  z-index: 3;
+
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+
+  border: 1px solid #426770;
+  border-radius: 12px;
+  background: rgba(9, 28, 38, 0.92);
+
+  pointer-events: auto;
+}
+
+.scene-globe .compare-chooser select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+}
+
+/* 비교 이미지 컨테이너 */
+.scene-globe .sar-compare-grid {
+  position: static;
+  display: block;
+  pointer-events: none;
+}
+
+/* 공통 말풍선 스타일 */
+.scene-globe .sar-photo-panel {
+  position: absolute;
+  top: clamp(300px, 34vh, 360px);
+
+  width: min(28vw, 415px);
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+
+  padding: 16px;
+  border: 1px solid #8dd9e7;
+  border-radius: 20px;
+
+  /* 수정된 부분: use the same solid surface for the panel and its pointer. */
+  background: #071621;
+  backdrop-filter: blur(16px);
+
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.55),
+    0 0 18px rgba(87, 212, 255, 0.24);
+
+  pointer-events: auto;
+}
+
+/* BEFORE는 왼쪽 */
+.scene-globe .sar-photo-panel:first-child {
+  left: 24px;
+}
+
+/* AFTER는 오른쪽 */
+.scene-globe .sar-photo-panel:last-child {
+  right: 24px;
+}
+
+/* 말풍선 꼬리 */
+.scene-globe .sar-photo-panel::after {
+  content: "";
+  position: absolute;
+  top: 35%;
+
+  width: 26px;
+  height: 26px;
+  background: inherit;
+  border-top: 1px solid #8dd9e7;
+  border-right: 1px solid #8dd9e7;
+  pointer-events: none;
+}
+
+/* 왼쪽 말풍선 → 지구본 방향 */
+.scene-globe .sar-photo-panel:first-child::after {
+  right: -14px;
+  transform: rotate(45deg);
+}
+
+/* 오른쪽 말풍선 → 지구본 방향 */
+.scene-globe .sar-photo-panel:last-child::after {
+  left: -14px;
+  transform: rotate(225deg);
+}
+
+/* SAR 이미지 크기 */
+.scene-globe .sar-image-frame {
+  height: clamp(160px, 25vh, 260px);
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.scene-globe .sar-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 데이터 검색 상태 */
+.scene-globe .compare-status {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+
+  z-index: 3;
+  width: min(560px, 52vw);
+  min-height: 0;
+
+  padding: 8px 12px;
+  text-align: center;
+  pointer-events: auto;
+}
+
+/* 기존 긴 설명문은 접기 */
+.scene-globe .compare-footer-note {
+  display: none;
+}
+
+/* 지구본 조작 버튼 */
+.scene-globe.is-comparing .globe-controls {
+  z-index: 13;
+  left: 50%;
+  right: auto;
+  bottom: 20px;
+  transform: translateX(-50%);
+}
+
+
+/* ===========================================
+   Mobile responsive layout
+   =========================================== */
+
+@media (max-width: 900px) {
+
+  /* 모바일에서 지구본 공간 확보 */
+  .scene-globe.is-comparing .globe-viz {
+    inset: 74px 0 38dvh;
+  }
+
+  .scene-globe .compare-top {
+    top: 76px;
+    width: calc(100vw - 24px);
+    max-width: 460px;
+  }
+
+  .scene-globe .compare-title {
+    padding: 8px 11px;
+  }
+
+  .scene-globe .compare-title h2 {
+    font-size: 15px;
+    margin: 1px 0;
+  }
+
+  .scene-globe .compare-title p {
+    font-size: 10px;
+  }
+
+  .scene-globe .compare-chooser {
+    top: 176px;
+    width: calc(100vw - 30px);
+    max-width: 400px;
+  }
+
+  /* 모바일에서는 하단에 Before / After 표시 */
+  .scene-globe .sar-compare-grid {
+    position: absolute;
+    inset: auto 10px 57px;
+    height: min(35dvh, 310px);
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .scene-globe .sar-photo-panel,
+  .scene-globe .sar-photo-panel:first-child,
+  .scene-globe .sar-photo-panel:last-child {
+    position: relative;
+
+    top: auto;
+    left: auto;
+    right: auto;
+
+    width: auto;
+    max-height: 100%;
+    padding: 9px;
+    gap: 6px;
+
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .scene-globe .sar-photo-panel::after {
+    display: none;
+  }
+
+  .scene-globe .sar-photo-heading h3 {
+    font-size: 12px;
+  }
+
+  .scene-globe .sar-photo-pill,
+  .scene-globe .sar-file-meta {
+    display: none;
+  }
+
+  .scene-globe .sar-image-frame {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 1.1;
+  }
+
+  .scene-globe .compare-status {
+    left: 10px;
+    bottom: 44px;
+    transform: none;
+
+    width: calc(100vw - 20px);
+    box-sizing: border-box;
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .scene-globe.is-comparing .globe-controls {
+    display: none;
+  }
+}
+
+
+
+
+/* =============================================
+   SARSCOPE - Floating Panel Layout Fix
+   Desktop layout improvements
+   ============================================= */
+
+   @media (min-width: 901px) {
+
+    .scene-globe.is-comparing {
+      /* 수정된 부분: share the frame width with the space between the photos. */
+      --frame-panel-width: min(440px, 42vw);
+      --region-panel-top: 96px;
+      --region-panel-height: 100px;
+      --region-frame-gap: 4px;
+    }
+
+    /* 수정된 부분: center both cards as one grid; gap controls their separation. */
+    .scene-globe.is-comparing .sar-compare-grid {
+      position: absolute;
+      top: clamp(326px, 36vh, 370px);
+      left: 0;
+      right: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 430px));
+      justify-content: center;
+      align-items: start;
+      /* 32px clearance on either side also leaves room for the panel pointers. */
+      column-gap: calc(var(--frame-panel-width) + 64px);
+      padding-inline: 24px; /* 화면 가장자리 여백 */
+      pointer-events: none;
+    }
+
+    .scene-globe.is-comparing .sar-photo-panel,
+    .scene-globe.is-comparing .sar-photo-panel:first-child,
+    .scene-globe.is-comparing .sar-photo-panel:last-child {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      width: 100%;
+      min-width: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    /* 사진 크기를 일정하게 유지 */
+    .scene-globe.is-comparing .sar-image-frame {
+      height: clamp(150px, 25vh, 260px);
+      min-height: 0;
+    }
+
+
+    /* 2. 선택 지역 정보 카드 */
+
+    .scene-globe.is-comparing .compare-top {
+      position: absolute;
+      top: var(--region-panel-top);
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+
+      width: min(460px, 44vw);
+      display: block;
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    .scene-globe.is-comparing .compare-title {
+        position: relative;
+        width: 100%;
+        min-height: var(--region-panel-height);
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center; /* 세로 중앙 */
+        align-items: center;     /* 가로 중앙 */
+        text-align: center;
+
+        padding: 0;
+        box-sizing: border-box;
+
+        border: 1px solid #6babb2;
+        border-radius: 16px;
+        background: rgba(8, 23, 32, 0.94);
+      }
+
+    .scene-globe.is-comparing .compare-title h2 {
+      font-size: 19px;
+      margin: 6px 0;
+    }
+
+
+    /* 3. Close 버튼을 카드 오른쪽 위에 배치 */
+
+    .scene-globe.is-comparing #compareBack {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      left: auto;
+
+      z-index: 21;
+      width: auto;
+      min-height: 34px;
+      padding: 0 12px;
+
+      border: 1px solid #557c88;
+      border-radius: 8px;
+      background: #19323e;
+      color: #e9f7f9;
+
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .scene-globe.is-comparing #compareBack:hover {
+      background: #28505e;
+    }
+
+
+    /* 4. Frame 선택창을 지역 정보 카드 아래로 분리 */
+
+    .scene-globe.is-comparing .compare-chooser {
+      position: absolute;
+      /* 수정된 부분: reduce the space below the region card, not the frame padding. */
+      top: calc(var(--region-panel-top) + var(--region-panel-height) + var(--region-frame-gap));
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+
+      width: var(--frame-panel-width);
+      padding: 15px;
+
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 9px;
+
+      border: 1px solid #426770;
+      border-radius: 12px;
+      background: rgba(9, 28, 38, 0.95);
+
+      box-sizing: border-box;
+      z-index: 19;
+      pointer-events: auto;
+    }
+
+    .scene-globe.is-comparing .compare-chooser select {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      padding: 11px 12px;
+    }
+
+
+    /* 5. 확대 / 축소 / 초기화 버튼 가로 배치 */
+
+    .scene-globe.is-comparing .globe-controls {
+      position: absolute;
+      left: 50%;
+      right: auto;
+      bottom: 74px;
+      transform: translateX(-50%);
+
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+
+      width: max-content;
+      padding: 3px;
+
+      border: 1px solid #42616b;
+      border-radius: 10px;
+      background: rgba(9, 25, 34, 0.92);
+
+      z-index: 25;
+    }
+
+    .scene-globe.is-comparing .globe-controls button {
+      width: 42px;
+      height: 38px;
+      flex: 0 0 42px;
+      font-size: 22px;
+    }
+
+    /* 가로 버튼 사이 세로 구분선 */
+    .scene-globe.is-comparing
+    .globe-controls .control-separator {
+      width: 1px;
+      height: 24px;
+      margin: 0 3px;
+      flex: 0 0 1px;
+      background: rgba(180, 215, 222, 0.24);
+    }
+
+
+    /* 6. 데이터 상태 메시지와 확대 버튼 분리 */
+
+    .scene-globe.is-comparing .compare-status {
+      position: absolute;
+      left: 50%;
+      bottom: 136px;
+      transform: translateX(-50%);
+
+      width: min(520px, 46vw);
+      padding: 10px 14px;
+
+      text-align: center;
+      box-sizing: border-box;
+
+      z-index: 18;
+    }
+  }
+
+
+/* =========================================
+   SARSCOPE - Map / SAR View Switcher
+   ========================================= */
+
+/* 1. SAR 비교 화면에서 Map 버튼 다시 표시 */
+/* 수정된 부분: remove the conflicting hide rule and unnecessary !important. */
+.scene-globe.is-comparing #compareMap {
+    display: inline-flex;
+
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: auto;
+
+    z-index: 22;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 34px;
+    width: auto;
+    padding: 0 12px;
+
+    border: 1px solid #78c8d7;
+    border-radius: 8px;
+
+    background: rgba(13, 45, 59, 0.96);
+    color: #dffaff;
+
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .scene-globe.is-comparing #compareMap:hover {
+    background: #22576a;
+    border-color: #b5f0ff;
+  }
+
+  /* 2. 상세 지도 상단의 버튼 배치 */
+  .scene-map .map-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* 지도 → SAR Photos 버튼 */
+  .scene-map #backToComparison {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 45px;
+    padding: 0 16px;
+
+    border: 1px solid #78c8d7;
+    border-radius: 8px;
+
+    background: #123846;
+    color: #e4fbff;
+
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .scene-map #backToComparison:hover {
+    background: #216078;
+  }
+
+  /* 3. 모바일 대응 */
+  @media (max-width: 800px) {
+
+    .scene-globe.is-comparing #compareMap {
+      top: 9px;
+      left: 9px;
+      padding: 0 8px;
+      min-height: 32px;
+      font-size: 10px;
+    }
+
+    .scene-map .map-toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .scene-map #backToGlobe,
+    .scene-map #backToComparison {
+      width: 100%;
+      min-width: 0;
+      padding: 0 8px;
+      font-size: 11px;
+    }
+
+    .scene-map .map-layer-toggle {
+      grid-column: 1 / -1;
+      justify-content: center;
+    }
+
+    .scene-map .location-card {
+      top: 200px;
+      max-height: calc(100dvh - 270px);
+    }
+  }
+
+
+/* 수정된 부분: removed obsolete cross-renderer fades; shared map styling is in map.css. */
