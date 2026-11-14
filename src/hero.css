@@ -1,70 +1,94 @@
 /* Homepage composition; comparison and local-map panels retain their layout. */
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-content {
+.scene-globe:not(.is-detail) .hero-content {
   left: 5.4%; top: 25%; width: 35%; max-width: 550px;
 }
-.scene-globe:not(.is-comparing):not(.is-detail) .eyebrow { font-size: clamp(8px, .74vw, 11px); letter-spacing: .17em; gap: 12px; }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-content h1 {
+.scene-globe:not(.is-detail) .eyebrow { font-size: clamp(8px, .74vw, 11px); letter-spacing: .17em; gap: 12px; }
+.scene-globe:not(.is-detail) .hero-content h1 {
   font-size: clamp(44px, 5.1vw, 86px); line-height: 1.07; letter-spacing: -.065em;
   margin: 27px 0 22px;
 }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-description {
+.scene-globe:not(.is-detail) .hero-description {
   font-size: clamp(12px, 1.15vw, 18px); line-height: 1.6;
   color: #b5c2c9; width: auto; max-width: 100%; margin: 0 0 30px;
 }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-actions { gap: 12px; }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-actions .btn {
+.scene-globe:not(.is-detail) .hero-actions { gap: 12px; }
+.scene-globe:not(.is-detail) .hero-actions .btn {
   min-height: 48px; padding: 0 18px; gap: 20px; font-size: clamp(10px, .85vw, 13px);
 }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-results-link { padding: 6px 0; font-size: clamp(11px, .95vw, 14px); }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-meta {
+.scene-globe:not(.is-detail) .hero-results-link { padding: 6px 0; font-size: clamp(11px, .95vw, 14px); }
+.scene-globe:not(.is-detail) .hero-meta {
   display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%;
   margin-top: 28px; padding-top: 20px; border-color: #b7ced138;
 }
-.scene-globe:not(.is-comparing):not(.is-detail) .hero-meta > div + div { border-left: 1px solid #b7ced138; padding-left: 20px; }
-.scene-globe:not(.is-comparing):not(.is-detail) .meta-label { font-size: clamp(8px, .65vw, 10px); letter-spacing: .11em; white-space: nowrap; }
-.scene-globe:not(.is-comparing):not(.is-detail) .meta-value { font-size: clamp(10px, .85vw, 13px); white-space: nowrap; }
-.scene-globe:not(.is-comparing):not(.is-detail) .view-status,
-.scene-globe:not(.is-comparing):not(.is-detail) .globe-bottom-right { display: none; }
-.scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { bottom: 15%; right: 2.2%; border-radius: 4px; }
-.scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide {
+.scene-globe:not(.is-detail) .hero-meta > div + div { border-left: 1px solid #b7ced138; padding-left: 20px; }
+.scene-globe:not(.is-detail) .meta-label { font-size: clamp(8px, .65vw, 10px); letter-spacing: .11em; white-space: nowrap; }
+.scene-globe:not(.is-detail) .meta-value { font-size: clamp(10px, .85vw, 13px); white-space: nowrap; }
+.scene-globe:not(.is-detail) .view-status,
+.scene-globe:not(.is-detail) .globe-bottom-right { display: none; }
+.scene-globe:not(.is-detail) .globe-controls { bottom: 15%; right: 2.2%; border-radius: 4px; }
+.scene-globe:not(.is-detail) .interaction-guide {
   left: 5.4%; bottom: 9.5%; font-size: clamp(8px, .75vw, 11px); letter-spacing: .12em; width: auto; max-width: none;
 }
 @media (min-width: 901px) and (max-height: 780px) {
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-content { top: 23%; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-content h1 { font-size: clamp(44px, 4.6vw, 68px); margin: 20px 0 16px; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-description { margin-bottom: 22px; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-meta { margin-top: 20px; padding-top: 16px; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 10.2%; }
+  .scene-globe:not(.is-detail) .hero-content { top: 23%; }
+  .scene-globe:not(.is-detail) .hero-content h1 { font-size: clamp(44px, 4.6vw, 68px); margin: 20px 0 16px; }
+  .scene-globe:not(.is-detail) .hero-description { margin-bottom: 22px; }
+  .scene-globe:not(.is-detail) .hero-meta { margin-top: 20px; padding-top: 16px; }
+  .scene-globe:not(.is-detail) .interaction-guide { bottom: 10.2%; }
 }
 @media (max-width: 1100px) and (min-width: 901px) {
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions .btn { gap: 10px; padding-inline: 12px; }
+  .scene-globe:not(.is-detail) .hero-actions .btn { gap: 10px; padding-inline: 12px; }
 }
 @media (max-width: 900px) {
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-content {
+  .scene-globe:not(.is-detail) .hero-content {
     top: 110px; left: 6%; right: 6%; width: auto; max-width: 470px;
   }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-content h1 { font-size: clamp(35px, 7.5vw, 54px); margin: 15px 0 12px; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-description { font-size: 12px; line-height: 1.5; margin: 0; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-meta { display: none; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { right: 5%; bottom: 205px; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 205px; left: 5%; font-size: 9px; letter-spacing: .03em; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls button { width: 38px; height: 38px; }
+  .scene-globe:not(.is-detail) .hero-content h1 { font-size: clamp(35px, 7.5vw, 54px); margin: 15px 0 12px; }
+  .scene-globe:not(.is-detail) .hero-description { font-size: 12px; line-height: 1.5; margin: 0; }
+  .scene-globe:not(.is-detail) .hero-meta { display: none; }
+  .scene-globe:not(.is-detail) .globe-controls { right: 5%; bottom: 205px; }
+  .scene-globe:not(.is-detail) .interaction-guide { bottom: 205px; left: 5%; font-size: 9px; letter-spacing: .03em; }
+  .scene-globe:not(.is-detail) .globe-controls button { width: 38px; height: 38px; }
 }
 
 
 @media (max-width: 900px) {
- .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-bottom-right { bottom: 35px; }
- .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib { font-size: 8px; line-height: 16px; }
+ .scene-globe:not(.is-detail) .maplibregl-ctrl-bottom-right { bottom: 35px; }
+ .scene-globe:not(.is-detail) .maplibregl-ctrl-attrib { font-size: 8px; line-height: 16px; }
 }
 
-.scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib { background: #051017dc; color: #9db0b9; border-radius: 4px; }
-.scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib a { color: inherit; }
-.scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib-button { filter: invert(1); }
+.scene-globe:not(.is-detail) .maplibregl-ctrl-attrib { background: #051017dc; color: #9db0b9; border-radius: 4px; }
+.scene-globe:not(.is-detail) .maplibregl-ctrl-attrib a { color: inherit; }
+.scene-globe:not(.is-detail) .maplibregl-ctrl-attrib-button { filter: invert(1); }
 
 @media (max-width: 900px) {
- .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions { display: flex; margin-top: 18px; gap: 8px; }
- .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions .btn { min-height: 44px; padding-inline: 12px; gap: 14px; }
- .scene-globe:not(.is-comparing):not(.is-detail) .hero-results-link { font-size: 11px; }
- .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { bottom: 90px; }
- .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 90px; }
+ .scene-globe:not(.is-detail) .hero-actions { display: flex; margin-top: 18px; gap: 8px; }
+ .scene-globe:not(.is-detail) .hero-actions .btn { min-height: 44px; padding-inline: 12px; gap: 14px; }
+ .scene-globe:not(.is-detail) .hero-results-link { font-size: 11px; }
+ .scene-globe:not(.is-detail) .globe-controls { bottom: 90px; }
+ .scene-globe:not(.is-detail) .interaction-guide { bottom: 90px; }
 }
+
+/* Keep home copy mounted so it can slide out and return without a layout jump. */
+.scene-globe:not(.is-detail) .hero-content {
+  display: block; opacity: 1; transform: translateX(0); visibility: visible;
+  transition: transform 1200ms cubic-bezier(.22,.61,.36,1), opacity 850ms ease 100ms, visibility 0s;
+  will-change: transform, opacity;
+}
+.scene-globe.is-comparing .hero-content {
+  display: block; opacity: 0; transform: translateX(calc(-100% - 7vw)); visibility: hidden;
+  transition: transform 1100ms cubic-bezier(.4,0,.2,1), opacity 800ms ease 100ms, visibility 0s 1100ms;
+}
+.scene-globe.is-comparing .hero-content,
+.scene-globe.is-comparing .hero-content * { pointer-events: none; }
+.scene-globe .interaction-guide { transition: opacity 700ms ease, translate 1200ms ease; }
+.scene-globe.is-comparing .interaction-guide { display: block; opacity: 0; translate: -80px 0; pointer-events: none; }
+.scene-globe .scene-compare:not([hidden]) { animation: result-scene-enter 1000ms cubic-bezier(.22,.61,.36,1) 150ms both; }
+@keyframes result-scene-enter { from { opacity: 0; translate: 70px 0; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+ .scene-globe .hero-content, .scene-globe .interaction-guide { transition: none !important; }
+ .scene-globe .scene-compare { animation: none !important; }
+}
+
+/* Camera movement carries the scene; keep zoom controls anchored during it. */
+.scene-globe:not(.is-detail) .globe-controls { left: auto; transform: none; flex-direction: column; }

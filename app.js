@@ -8,6 +8,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const PHOTO_ZOOM = 2.5;
   // 수정된 부분: duration in milliseconds for View local map.
   const LOCAL_MAP_FLIGHT_MS = 2400;
+  const SCENE_FLIGHT_MS = 1500;
   const $ = id => document.getElementById(id);
   const globeScene = $("globeScene");
   const mapScene = $("mapScene");
@@ -179,19 +180,41 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     marker ??= new maplibregl.Marker({ color: "#d5fa79" });
     marker.setLngLat([lng, lat]).addTo(map);
   }
-  function syncMapFrame() {
-    if (!map?.setPadding) return;
+  function scenePadding() {
     const home = mode === "globe" && !selectedLocation;
     const desktop = window.innerWidth > 900;
-    const padding = home
+    return home
       ? desktop ? { left: Math.round(window.innerWidth * 0.32), right: 0, top: 80, bottom: 80 }
         : { left: 0, right: 0, top: 390, bottom: 150 }
       : { left: 0, right: 0, top: 0, bottom: 0 };
+  }
+  function syncMapFrame() {
+    if (!map?.setPadding) return;
+    const padding = scenePadding();
     const key = JSON.stringify(padding);
     if (key === framePaddingKey) return;
     framePaddingKey = key;
     updatingMapFrame = true;
     try { map.setPadding(padding); } finally { updatingMapFrame = false; }
+  }
+  function moveSceneCamera(camera) {
+    if (!map) return;
+    const padding = scenePadding();
+    framePaddingKey = JSON.stringify(padding);
+    const options = { ...camera, padding, duration: reducedMotion.matches ? 0 : SCENE_FLIGHT_MS,
+      easing: t => t * t * (3 - 2 * t) };
+    // Cancelled-flight events must not resume home rotation before the new flight.
+    updatingMapFrame = true;
+    try {
+      if (map.easeTo) map.easeTo(options);
+      else map.flyTo(options);
+    } finally { updatingMapFrame = false; }
+  }
+  function setHomePresentation(visible) {
+    const hero = $("homeHero");
+    if (!hero) return;
+    hero.inert = !visible;
+    hero.setAttribute("aria-hidden", String(!visible));
   }
   function resizeGlobe() { if (map) { map.resize(); syncMapFrame();
     if (mode === "globe" && !selectedLocation && !introActive) map.jumpTo({ zoom: homeZoom() });
@@ -229,6 +252,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     if (map.getZoom() >= DETAIL_ZOOM && mode !== "map") {
       comparisonRequestId++;
       mode = "map";
+      setHomePresentation(false);
       syncMapFrame();
       compareScene.hidden = true;
       globeScene.classList.remove("is-comparing");
@@ -239,6 +263,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       updateLocationPanel();
     } else if (map.getZoom() < DETAIL_ZOOM - 0.5 && mode === "map") {
       mode = "globe";
+      setHomePresentation(true);
       syncMapFrame();
       mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
@@ -258,7 +283,6 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     selectedLocation = true;
     // 수정된 부분: search starts immediately, independently of camera animation.
     openComparison(lat, lng);
-    if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : 1000 });
   }
   function goHome() {
     motionInterrupted = true;
@@ -270,14 +294,14 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     comparisonRequestId++;
     mode = "globe";
     selectedLocation = false;
-    syncMapFrame();
+    setHomePresentation(true);
     globeScene.hidden = false;
     globeScene.classList.remove("is-comparing", "is-detail");
     compareScene.hidden = true;
     mapScene.hidden = true;
     refreshRasterLayers(false);
     homeMotionPending = !reducedMotion.matches;
-    if (map) map.flyTo({ ...START, zoom: homeZoom(), duration: reducedMotion.matches ? 0 : 1000 });
+    moveSceneCamera({ ...START, zoom: homeZoom() });
   }
   function showComparisonFromMap() {
     motionInterrupted = true;
@@ -290,12 +314,12 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       Math.abs(lastComparedPoint.lng - lng) < 0.000001 && comparisonPairs.length;
     if (reuse) {
       mode = "compare";
-      syncMapFrame();
+      setHomePresentation(false);
       globeScene.classList.add("is-comparing");
       compareScene.hidden = false;
+      moveSceneCamera({ center: [lng, lat], zoom: PHOTO_ZOOM });
     } else openComparison(lat, lng);
     refreshRasterLayers(false);
-    if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : LOCAL_MAP_FLIGHT_MS });
   }
   function openMap(lat, lng) {
     motionInterrupted = true;
@@ -417,8 +441,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     lastComparedPoint = null;
     comparisonPairs = [];
     const requestId = ++comparisonRequestId;
+    stopGlobeMotion();
+    cameraDestination = PHOTO_ZOOM;
+    selectedLocation = true;
     mode = "compare";
-    syncMapFrame();
+    setHomePresentation(false);
     currentTarget = {
       lat,
       lng,
@@ -431,6 +458,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     globeScene.hidden = false;
     globeScene.classList.remove("is-detail");
     globeScene.classList.add("is-comparing");
+    moveSceneCamera({ center: [lng, lat], zoom: PHOTO_ZOOM });
     refreshRasterLayers(false);
     mapScene.hidden = true;
     compareScene.hidden = false;

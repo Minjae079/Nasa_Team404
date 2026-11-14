@@ -13,7 +13,7 @@ export function GlobeScene({ onOpenModelResults, selectedPoint }) {
           <button className="btn btn-outline" onClick={() => window.location.reload()}>Try again</button>
         </div>
 
-        <div className="hero-content">
+        <div id="homeHero" className="hero-content">
           <div className="eyebrow"><span className="eyebrow-line"></span> EXPLORE THE INVISIBLE EARTH</div>
           <h1>See beyond<br /><span>the surface.</span></h1>
           <p className="hero-description">Explore published SAR imagery.<br />See how Earth changes over time.</p>

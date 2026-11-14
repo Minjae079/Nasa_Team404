@@ -303,17 +303,19 @@ test('home camera padding follows responsive layout and clears for result select
     getBearing() { return 0; }
     getPitch() { return 0; }
     getLayer() { return false; }
-    flyTo() {}
+    easeTo(options) { this.flight = options; this.padding = options.padding; this.zoom = options.zoom; this.events.moveend?.(); }
   }
   class Marker { setLngLat() {return this;} addTo() {return this;} remove() {} }
   const updates = [];
-  const {controller} = frontend(async () => ({ok:false}), {Map,Marker}, true,
+  const {controller, node} = frontend(async () => ({ok:false}), {Map,Marker}, true,
     {onSelection(){},onCamera: camera => updates.push(camera)});
   controller.initGlobe();
   const map = controller.state().map;
   assert.equal(map.padding.left,410);
   assert.equal(updates.at(-1).offsetX,205);
   await controller.openComparison(35,130);
+  assert.equal(node("homeHero").inert,true);
+  assert.equal(map.flight.duration,0);
   assert.deepEqual(Object.values(map.padding),[0,0,0,0]);
   map.events.move();
   assert.equal(updates.at(-1).offsetX,0);
@@ -321,8 +323,24 @@ test('home camera padding follows responsive layout and clears for result select
   controller.goHome();
   assert.equal(map.padding.left,410);
   assert.equal(controller.state().mode, "globe");
+  assert.equal(node("homeHero").inert,false);
   const mobile = frontend(async () => ({ok:false}),{Map,Marker},true,{viewportWidth:390});
   mobile.controller.initGlobe();
   assert.equal(mobile.controller.state().map.options.zoom,0.95);
   assert.equal(mobile.controller.state().map.padding.left,0);
+  const smooth = frontend(async () => ({ok:false}),{Map,Marker},false,{onSelection(){}});
+  smooth.controller.initGlobe();
+  const smoothMap = smooth.controller.state().map;
+  await smooth.controller.openComparison(35,130);
+  assert.equal(smoothMap.flight.duration,1500);
+  assert.equal(smoothMap.flight.padding.left,0);
+  assert.equal(smoothMap.flight.easing(0),0);
+  assert.equal(smoothMap.flight.easing(1),1);
+  assert.ok(smoothMap.flight.easing(0.1) < 0.1);
+  smooth.controller.goHome();
+  assert.equal(smoothMap.flight.duration,1500);
+  assert.equal(smoothMap.flight.padding.left,410);
+  assert.equal(smooth.frames.size,0);
+  smoothMap.events.moveend();
+  assert.equal(smooth.frames.size,1);
 });
