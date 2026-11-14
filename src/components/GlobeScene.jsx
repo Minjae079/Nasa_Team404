@@ -1,4 +1,3 @@
-import regionThumbnail from '../../assets/regions/illinois-tech.jpg';
 import { Starfield } from './Starfield.jsx';
 import { ComparisonScene } from './ComparisonScene.jsx';
 
@@ -29,18 +28,6 @@ export function GlobeScene({ onOpenModelResults, selectedPoint }) {
         </div>
 
         <div className="view-status"><span className="small-cross">✦</span> LIVE 3D GLOBE <span className="view-status-dot"></span></div>
-
-        <aside className="scene-rail" aria-label="Region controls">
-          <div className="region-card">
-            <img className="region-thumbnail" src={regionThumbnail} alt="Satellite view of Illinois Tech and surrounding Chicago streets" />
-            <div className="region-card-content">
-              <span className="card-kicker"><span className="mini-dot"></span> FEATURED LOCATION</span>
-              <h2>Illinois Tech</h2>
-              <p>Chicago, USA</p>
-              <button className="rail-link" id="railIIT"><span>Explore region</span><span aria-hidden="true">↗</span></button>
-            </div>
-          </div>
-        </aside>
 
         <div className="globe-controls" aria-label="Globe controls">
           <button id="zoomInGlobe" title="Zoom globe in" aria-label="Zoom globe in">+</button>

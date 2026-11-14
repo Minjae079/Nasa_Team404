@@ -25,27 +25,6 @@
 .scene-globe:not(.is-comparing):not(.is-detail) .meta-value { font-size: clamp(10px, .85vw, 13px); white-space: nowrap; }
 .scene-globe:not(.is-comparing):not(.is-detail) .view-status,
 .scene-globe:not(.is-comparing):not(.is-detail) .globe-bottom-right { display: none; }
-.scene-globe:not(.is-comparing):not(.is-detail) .scene-rail {
-  top: auto; bottom: 15%; right: 6.5%; width: clamp(285px, 25vw, 420px);
-  left: auto; padding: 0; border: 0; box-shadow: none; background: none; overflow: visible;
-}
-.region-card {
-  display: grid; grid-template-columns: 43% 1fr; gap: 16px; padding: 12px;
-  border: 1px solid #9dbfbe4d; border-radius: 14px;
-  background: #08171cda; box-shadow: 0 15px 40px #0003; backdrop-filter: blur(16px);
-}
-.region-thumbnail { display: block; width: 100%; height: 100%; min-height: 128px; object-fit: cover; border-radius: 8px; }
-.region-card-content { padding: 8px 0; align-self: center; min-width: 0; }
-.region-card .card-kicker { font-size: 8px; letter-spacing: .09em; gap: 6px; white-space: nowrap; }
-.region-card h2 { font-size: clamp(19px, 1.6vw, 25px); line-height: 1.15; margin: 12px 0 6px; }
-.region-card p { font-size: 12px; margin: 0 0 14px; color: #a8b9bf; }
-.region-card .rail-link {
-  display: inline-flex; gap: 18px; min-height: 34px; width: auto; padding: 5px 10px;
-  font-size: 10px; font-weight: 600; letter-spacing: .01em;
-  border: 1px solid #bbd1d15e; border-radius: 4px; color: #e7f0ec; background: #07101588;
-}
-.region-card .rail-link:hover { color: var(--mint); border-color: var(--mint); }
-.region-card .rail-link span:first-child { max-width: none; }
 .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { bottom: 15%; right: 2.2%; border-radius: 4px; }
 .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide {
   left: 5.4%; bottom: 9.5%; font-size: clamp(8px, .75vw, 11px); letter-spacing: .12em; width: auto; max-width: none;
@@ -58,9 +37,6 @@
   .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 10.2%; }
 }
 @media (max-width: 1100px) and (min-width: 901px) {
-  .region-card { gap: 10px; padding: 10px; }
-  .region-thumbnail { min-height: 110px; }
-  .region-card .card-kicker { font-size: 7px; }
   .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions .btn { gap: 10px; padding-inline: 12px; }
 }
 @media (max-width: 900px) {
@@ -69,27 +45,12 @@
   }
   .scene-globe:not(.is-comparing):not(.is-detail) .hero-content h1 { font-size: clamp(35px, 7.5vw, 54px); margin: 15px 0 12px; }
   .scene-globe:not(.is-comparing):not(.is-detail) .hero-description { font-size: 12px; line-height: 1.5; margin: 0; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions,
   .scene-globe:not(.is-comparing):not(.is-detail) .hero-meta { display: none; }
-  .scene-globe:not(.is-comparing):not(.is-detail) .scene-rail {
-    display: block; left: 5%; right: 5%; bottom: 70px; width: auto;
-  }
-  .region-card { grid-template-columns: 88px 1fr; padding: 9px; gap: 14px; border-radius: 12px; }
-  .region-thumbnail { min-height: 96px; max-height: 110px; }
-  .region-card-content { padding: 2px 0; position: relative; }
-  .region-card .card-kicker { font-size: 7px; }
-  .region-card h2 { font-size: 19px; margin: 8px 0 4px; }
-  .region-card p { font-size: 11px; margin: 0; }
-  .region-card .rail-link { position: absolute; right: 0; bottom: 0; min-height: 36px; gap: 8px; padding: 4px 8px; }
   .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { right: 5%; bottom: 205px; }
   .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 205px; left: 5%; font-size: 9px; letter-spacing: .03em; }
   .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls button { width: 38px; height: 38px; }
 }
-@media (max-width: 380px) {
-  .region-card { grid-template-columns: 65px 1fr; gap: 10px; }
-  .region-card .rail-link { position: static; margin-top: 8px; }
-  .region-thumbnail { min-height: 115px; }
-}
+
 
 @media (max-width: 900px) {
  .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-bottom-right { bottom: 35px; }
@@ -99,3 +60,11 @@
 .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib { background: #051017dc; color: #9db0b9; border-radius: 4px; }
 .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib a { color: inherit; }
 .scene-globe:not(.is-comparing):not(.is-detail) .maplibregl-ctrl-attrib-button { filter: invert(1); }
+
+@media (max-width: 900px) {
+ .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions { display: flex; margin-top: 18px; gap: 8px; }
+ .scene-globe:not(.is-comparing):not(.is-detail) .hero-actions .btn { min-height: 44px; padding-inline: 12px; gap: 14px; }
+ .scene-globe:not(.is-comparing):not(.is-detail) .hero-results-link { font-size: 11px; }
+ .scene-globe:not(.is-comparing):not(.is-detail) .globe-controls { bottom: 90px; }
+ .scene-globe:not(.is-comparing):not(.is-detail) .interaction-guide { bottom: 90px; }
+}

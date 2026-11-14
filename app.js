@@ -185,7 +185,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     const desktop = window.innerWidth > 900;
     const padding = home
       ? desktop ? { left: Math.round(window.innerWidth * 0.32), right: 0, top: 80, bottom: 80 }
-        : { left: 0, right: 0, top: 270, bottom: 190 }
+        : { left: 0, right: 0, top: 390, bottom: 150 }
       : { left: 0, right: 0, top: 0, bottom: 0 };
     const key = JSON.stringify(padding);
     if (key === framePaddingKey) return;
@@ -595,9 +595,6 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       if (event.key === "Escape") toggleModal(false);
     });
     listen($("exploreIIT"), "click", () =>
-      flyTo(IIT.lat, IIT.lng, IIT.name)
-    );
-    listen($("railIIT"), "click", () =>
       flyTo(IIT.lat, IIT.lng, IIT.name)
     );
     listen($("jumpToIITFromMap"), "click", () =>
