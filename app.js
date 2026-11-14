@@ -1,5 +1,5 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
-export function createExplorer(maplibregl, { onSelection } = {}) {
+export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
@@ -97,6 +97,12 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
       });
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
       // No second renderer, tile cache reset, delayed swap or click is needed.
+      function syncSkyCamera() {
+        onCamera?.({ lng: map.getCenter().lng, lat: map.getCenter().lat,
+          bearing: map.getBearing(), pitch: map.getPitch() });
+      }
+      map.on("move", syncSkyCamera);
+      syncSkyCamera();
       map.on("zoom", syncZoomMode);
       // Stop before a drag or wheel gesture so animation never fights the user.
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {

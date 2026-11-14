@@ -1,9 +1,12 @@
-# Constellation background
+# Catalog star background
 
 Source: [d3-celestial by Olaf Frohn](https://github.com/ofrohn/d3-celestial).
-The original `stars.6.json` (5,044 stars) and `constellations.lines.json` are included with the upstream BSD license in `LICENSE`.
+The original stars.6.json (5,044 stars) and constellations.lines.json are included with the upstream BSD license in LICENSE.
 
-Run `node assets/sky/build-sky.mjs` to rebuild `constellation-sky.svg`.
-Positions use an equirectangular projection of catalog right ascension and declination; brightness is styled from magnitude and colors from B−V. Constellation connections are conventional chart guides.
+The home screen now uses src/components/Starfield.jsx and src/skyProjection.js.
+Catalog right ascension and declination become unit vectors on a sphere. A perspective projection follows the globe camera longitude, latitude, bearing and pitch, including intro motion, dragging and reset. Zoom does not enlarge stars: they represent a distant background.
+Star size and brightness follow magnitude, with restrained B−V colors and soft halos on the brightest stars. Chart connection lines are omitted for a natural sky appearance. No runtime external sky requests are made.
 
-This is a fixed decorative sky chart, not a simulation of the sky at the viewer's current location or time. It does not rotate with the Earth camera. No runtime external requests are needed for the sky.
+This is a decorative inertial backdrop, not a date-, observer- or sidereal-time-calibrated astronomy simulation, and is not NASA imagery. The legacy build-sky.mjs / constellation-sky.svg remain optional offline chart tools; the app no longer loads that SVG.
+
+The app imports stars.compact.json, a lossless tuple-only build of the source catalog. Run node assets/sky/build-sky.mjs to regenerate it together with the legacy SVG.

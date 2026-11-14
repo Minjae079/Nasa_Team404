@@ -1,11 +1,15 @@
-/* Real catalog coordinates; the transparent map canvas places Earth in front. */
+/* Catalog stars projected onto a camera-linked celestial sphere. */
+.scene-globe { background: #020409; }
 .scene-globe .starfield {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 1;
-  background-image: url('./assets/sky/constellation-sky.svg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background: #020409;
   pointer-events: none;
 }
+.scene-globe .globe-aura { opacity: .22; }
 #globeViz, #globeViz.maplibregl-map { background: transparent; }
 .scene-globe.is-detail .starfield { visibility: hidden; }

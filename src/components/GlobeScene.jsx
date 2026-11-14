@@ -1,8 +1,9 @@
+import { Starfield } from './Starfield.jsx';
 import { ComparisonScene } from './ComparisonScene.jsx';
 
 export function GlobeScene({ onOpenModelResults, selectedPoint }) {
   return (<section id="globeScene" className="scene scene-globe" aria-label="Interactive 3D Earth">
-        <div className="starfield" aria-hidden="true"></div>
+        <Starfield />
         <div className="globe-aura" aria-hidden="true"></div>
         <div id="globeViz" className="globe-viz"></div>
         <div id="globeFallback" className="globe-fallback" hidden>

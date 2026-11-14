@@ -7,6 +7,8 @@ import { Footer } from './components/Footer.jsx';
 import { AboutDialog } from './components/AboutDialog.jsx';
 import { ModelResultsDialog } from './components/ModelResultsDialog.jsx';
 
+const syncSkyCamera = camera => window.dispatchEvent(new CustomEvent('sarscope:camera', { detail: camera }));
+
 const engineUrl = 'https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.mjs';
 let enginePromise;
 export function App() {
@@ -25,13 +27,13 @@ export function App() {
     enginePromise ??= import(/* @vite-ignore */ engineUrl);
     enginePromise.then(engine => {
       if (cancelled) return;
-      explorer = createExplorer(engine, { onSelection: setSelectedPoint });
+      explorer = createExplorer(engine, { onSelection: setSelectedPoint, onCamera: syncSkyCamera });
       explorer.start();
     }).catch(error => {
       if (cancelled) return;
       console.error('Map engine unavailable', error);
       // Navigation and the model result viewer still work without WebGL/CDN.
-      explorer = createExplorer(undefined, { onSelection: setSelectedPoint });
+      explorer = createExplorer(undefined, { onSelection: setSelectedPoint, onCamera: syncSkyCamera });
       explorer.start();
     });
     return () => { cancelled = true; explorer?.destroy(); };

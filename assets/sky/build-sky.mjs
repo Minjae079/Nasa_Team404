@@ -2,6 +2,10 @@
 // Catalog and constellation geometry: https://github.com/ofrohn/d3-celestial
 import { readFileSync, writeFileSync } from 'node:fs';
 const read = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
+writeFileSync(new URL('stars.compact.json', import.meta.url), JSON.stringify(
+  read('stars.6.json').features.map(({ geometry, properties }) =>
+    [...geometry.coordinates, properties.mag, Number(properties.bv)])
+) + '\n');
 const project = ([ra, dec]) => [(180 - ra) / 360 * 2400, (90 - dec) / 180 * 1200];
 const fixed = n => n.toFixed(2);
 const lines = [];
