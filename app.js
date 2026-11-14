@@ -651,8 +651,16 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     // Prepared overlays attach to the shared map after its style loads.
     tryLoadSarLayers();
   }
+  function selectCoordinates(lat, lng) {
+    if (disposed || !map || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+    if (mode === "map") openMap(lat, lng);
+    else { setBasemap("satellite"); flyTo(lat, lng); }
+    return true;
+  }
   return {
     start,
+    selectCoordinates,
+    isReady: () => !!map && !disposed,
     destroy() {
       disposed = true;
       stopGlobeMotion();

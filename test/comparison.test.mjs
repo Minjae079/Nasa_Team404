@@ -27,7 +27,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   vm.runInContext(source.replace('  function start() {', `
     globalThis.controller = {
       openComparison, setImage, initGlobe, syncZoomMode, goHome, openMap, setBasemap,
-      showComparisonFromMap,
+      showComparisonFromMap, selectCoordinates,
       state: () => ({ lastComparedPoint, comparisonPairs, mode, map }),
       leave: () => { comparisonRequestId++; mode = 'map'; },
     };
@@ -348,4 +348,41 @@ test('home camera padding follows responsive layout and clears for result select
   assert.equal(smooth.frames.size,0);
   smoothMap.events.moveend();
   assert.equal(smooth.frames.size,1);
+});
+
+test('typed coordinates reuse geographic selection and the marker; invalid values do not navigate', () => {
+  let pin, count = 0;
+  const selections=[];
+  class Map {
+    constructor() {this.events={};}
+    getCanvas() {return {setAttribute(){}};}
+    on(name,handler) {this.events[name]=handler;}
+    getLayer() {return false;}
+    getZoom() {return this.flight?.zoom ?? 2;}
+    getCenter() {return {lat:0,lng:0};}
+    flyTo(options) {this.flight=options;}
+  }
+  class Marker {
+    constructor(){pin=this;count++;}
+    setLngLat(value){this.coords=value;return this;}
+    addTo(){return this;}
+  }
+  const {controller}=frontend(async()=>({ok:false}),{Map,Marker},true,{onSelection:point=>selections.push(point)});
+  assert.equal(controller.selectCoordinates(0,0),false);
+  controller.initGlobe();
+  assert.equal(controller.selectCoordinates(91,0),false);
+  assert.equal(controller.selectCoordinates(0,181),false);
+  assert.equal(controller.selectCoordinates(NaN,0),false);
+  assert.equal(count,0);
+  assert.equal(controller.selectCoordinates(0,0),true);
+  assert.deepEqual(Array.from(pin.coords),[0,0]);
+  assert.equal(selections.at(-1).lat,0);
+  assert.equal(controller.selectCoordinates(-33.8,151.2),true);
+  assert.deepEqual(Array.from(pin.coords),[151.2,-33.8]);
+  assert.equal(count,1);
+  controller.openMap(35,130);
+  assert.equal(controller.state().mode,'map');
+  assert.equal(controller.selectCoordinates(41.83531,-87.627),true);
+  assert.deepEqual(Array.from(pin.coords),[-87.627,41.83531]);
+  assert.equal(controller.state().mode,'map');
 });
