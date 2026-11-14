@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-function frontend(fetch, maplibregl, reduceMotion = true) {
+function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   const nodes = new Map();
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {
@@ -14,13 +14,13 @@ function frontend(fetch, maplibregl, reduceMotion = true) {
     return nodes.get(id);
   };
   const context = vm.createContext({
-    fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl,
+    fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl, options,
     window: { matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
       createElement: () => ({}) },
   });
   // Expose the real controller without booting WebGL or CDN assets.
-  const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace('export function', 'function') + '\ncreateExplorer(maplibregl);';
+  const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace('export function', 'function') + '\ncreateExplorer(maplibregl, options);';
   vm.runInContext(source.replace('  function start() {', `
     globalThis.controller = {
       openComparison, setImage, initGlobe, syncZoomMode, goHome, openMap, setBasemap,
@@ -37,6 +37,21 @@ const pair = {
   after: { date: '2026-10-22', browse: 'https://nisar.asf.earthdatacloud.nasa.gov/BROWSE/after.png' },
 };
 const result = () => ({ ok: true, json: async () => ({ pairs: [pair] }) });
+
+test('React storage mode receives geographic selections without requesting NASA photos', async () => {
+  let requests = 0;
+  const selections = [];
+  const { controller } = frontend(async () => { requests++; return result(); }, undefined, true,
+    { onSelection: point => selections.push(point) });
+  await controller.openComparison(41.5, -87.5);
+  await controller.openComparison(35, 130);
+  assert.equal(requests, 0);
+  assert.equal(selections.length, 2);
+  assert.equal(selections[1].lat, 35);
+  assert.equal(selections[1].lng, 130);
+  controller.goHome();
+  assert.equal(selections.at(-1), null);
+});
 
 test('new searches clear previous results, including when the search fails', async () => {
   let fail = false;

@@ -10,6 +10,7 @@ import { ModelResultsDialog } from './components/ModelResultsDialog.jsx';
 const engineUrl = 'https://unpkg.com/maplibre-gl@6.18.0/dist/maplibre-gl.mjs';
 let enginePromise;
 export function App() {
+  const [selectedPoint, setSelectedPoint] = useState(null);
   const [showResults, setShowResults] = useState(false);
   function openResults() {
     // The existing controller owns the legacy About overlay only.
@@ -24,13 +25,13 @@ export function App() {
     enginePromise ??= import(/* @vite-ignore */ engineUrl);
     enginePromise.then(engine => {
       if (cancelled) return;
-      explorer = createExplorer(engine);
+      explorer = createExplorer(engine, { onSelection: setSelectedPoint });
       explorer.start();
     }).catch(error => {
       if (cancelled) return;
       console.error('Map engine unavailable', error);
       // Navigation and the model result viewer still work without WebGL/CDN.
-      explorer = createExplorer(undefined);
+      explorer = createExplorer(undefined, { onSelection: setSelectedPoint });
       explorer.start();
     });
     return () => { cancelled = true; explorer?.destroy(); };
@@ -39,7 +40,7 @@ export function App() {
   return <>
     <div className="site-frame">
       <Topbar onOpenModelResults={openResults} />
-      <main className="main-content"><GlobeScene onOpenModelResults={openResults} /><LocalMap /></main>
+      <main className="main-content"><GlobeScene onOpenModelResults={openResults} selectedPoint={selectedPoint} /><LocalMap /></main>
       <Footer />
     </div>
     <AboutDialog onOpenModelResults={openResults} />

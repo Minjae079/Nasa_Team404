@@ -1,6 +1,5 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
-export function createExplorer(maplibregl) {
-  "use strict";
+export function createExplorer(maplibregl, { onSelection } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const DETAIL_ZOOM = 6;
@@ -154,6 +153,7 @@ export function createExplorer(maplibregl) {
     if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : 1000 });
   }
   function goHome() {
+    onSelection?.(null);
     cameraDestination = START.zoom;
     comparisonRequestId++;
     mode = "globe";
@@ -181,6 +181,7 @@ export function createExplorer(maplibregl) {
     if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : LOCAL_MAP_FLIGHT_MS });
   }
   function openMap(lat, lng) {
+    onSelection?.(null);
     cameraDestination = null;
     if (!map) { fallback.hidden = false; return; }
     comparisonRequestId++;
@@ -315,6 +316,10 @@ export function createExplorer(maplibregl) {
     $("compareCoordinates").textContent = coordLabel(lat, lng);
     $("sarCompareGrid").hidden = true;
     $("pairChooser").hidden = true;
+    if (onSelection) {
+      onSelection({ lat, lng });
+      return;
+    }
     updateComparisonStatus(
       "Searching NASA ASF catalog for matched NISAR GCOV acquisitions…"
     );
@@ -498,6 +503,7 @@ export function createExplorer(maplibregl) {
     start,
     destroy() {
       disposed = true;
+      onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
       if (map) map.remove();

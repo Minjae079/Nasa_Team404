@@ -49,3 +49,9 @@ NASA browse 이미지는 미리보기이며 검증된 변화 탐지 또는 미�
 
 기존 REACT_BRANCH.md와 HACKATHON_HANDOFF_KO.md는 원본 저장소의 과거 인수인계 기록입니다.
 이 저장소의 실행과 빌드는 본 README를 우선합니다.
+
+## 4파일 Storage 연결 (현재 지도 클릭 화면)
+
+`before.png`, `after.png`, `change_overlay.png`, `metadata.json` 묶음을 게시하고 좌표로 조회합니다.
+지도 클릭 시 사전 처리된 결과를 표시하며, 즉석 모델 실행이나 NASA 미리보기 대체 표시는 하지 않습니다.
+설정·메타데이터 예제·게시 명령은 [STORAGE_BUNDLES_KO.md](STORAGE_BUNDLES_KO.md)를 참고하세요.
