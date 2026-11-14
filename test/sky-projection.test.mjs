@@ -52,3 +52,10 @@ test('dense background is deterministic on a sphere and stays distributed across
     assert.ok(Math.abs(Math.hypot(...star.vector)-1) < 1e-10);
   }
 });
+
+test('off-center globe layout shifts the star vanishing point without changing star scale', () => {
+  const star = starVector([180,0]);
+  const shifted = projectStar(star,skyCamera({lng:0,lat:0,offsetX:200,offsetY:40},1200,720));
+  assert.ok(Math.abs(shifted[0]-800)<1e-8);
+  assert.ok(Math.abs(shifted[1]-400)<1e-8);
+});

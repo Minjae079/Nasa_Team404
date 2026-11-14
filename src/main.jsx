@@ -9,3 +9,5 @@ import '../sky.css';
 import './react.css';
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+
+import './hero.css';

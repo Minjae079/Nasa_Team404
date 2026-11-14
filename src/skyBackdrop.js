@@ -8,7 +8,7 @@ export function createBackdrop(count = 36000) {
     const r = Math.sqrt(1 - z * z);
     return { vector: [r * Math.cos(angle), r * Math.sin(angle), z],
       radius: 0.35 + Math.pow(random(), 3) * 0.43,
-      alpha: 0.28 + random() * 0.40,
+      alpha: 0.16 + random() * 0.34,
       color: random() < 0.12 ? '195,215,250' : '232,236,242' };
   });
 }

@@ -17,7 +17,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   let frameId = 0;
   const context = vm.createContext({
     fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl, options,
-    window: { requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
+    window: { innerWidth: options.viewportWidth ?? 1280, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
       cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
       createElement: () => ({}) },
@@ -289,4 +289,40 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
   assert.equal(interruptedMap.stopped, true);
   interruptedMap.events.moveend();
   assert.equal(interrupted.frames.size, 0);
+});
+
+test('home camera padding follows responsive layout and clears for result selection', async () => {
+  class Map {
+    constructor(options) { this.options = options; this.events = {}; this.padding = {}; }
+    getCanvas() { return {setAttribute(){}}; }
+    on(name, handler) { this.events[name] = handler; }
+    setPadding(value) { this.padding = value; this.events.moveend?.(); }
+    getZoom() { return this.zoom ?? this.options.zoom; }
+    getPadding() { return this.padding; }
+    getCenter() { return {lng:-86,lat:34}; }
+    getBearing() { return 0; }
+    getPitch() { return 0; }
+    getLayer() { return false; }
+    flyTo() {}
+  }
+  class Marker { setLngLat() {return this;} addTo() {return this;} remove() {} }
+  const updates = [];
+  const {controller} = frontend(async () => ({ok:false}), {Map,Marker}, true,
+    {onSelection(){},onCamera: camera => updates.push(camera)});
+  controller.initGlobe();
+  const map = controller.state().map;
+  assert.equal(map.padding.left,410);
+  assert.equal(updates.at(-1).offsetX,205);
+  await controller.openComparison(35,130);
+  assert.deepEqual(Object.values(map.padding),[0,0,0,0]);
+  map.events.move();
+  assert.equal(updates.at(-1).offsetX,0);
+  map.zoom = 15;
+  controller.goHome();
+  assert.equal(map.padding.left,410);
+  assert.equal(controller.state().mode, "globe");
+  const mobile = frontend(async () => ({ok:false}),{Map,Marker},true,{viewportWidth:390});
+  mobile.controller.initGlobe();
+  assert.equal(mobile.controller.state().map.options.zoom,0.95);
+  assert.equal(mobile.controller.state().map.padding.left,0);
 });

@@ -3,6 +3,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
+  const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.5;
   // 수정된 부분: duration in milliseconds for View local map.
@@ -20,6 +21,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   }
   let map;
   let marker;
+  let framePaddingKey = "";
+  let updatingMapFrame = false;
   let mode = "globe";
   let currentTarget = { ...IIT };
   let comparisonRequestId = 0;
@@ -60,7 +63,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
           introElapsed += elapsed;
           const progress = Math.min(introElapsed / 3000, 1);
           const eased = 1 - Math.pow(1 - progress, 3);
-          camera.zoom = INTRO_ZOOM + (START.zoom - INTRO_ZOOM) * eased;
+          camera.zoom = progress === 1 ? homeZoom() : INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * eased;
           if (progress === 1) introActive = false;
         }
         // One camera update rotates and approaches together, then keeps rotating.
@@ -76,14 +79,14 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? START.zoom : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
+        container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? homeZoom() : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
         attributionControl: { compact: true },
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
-              attribution: "Earth imagery: NASA Blue Marble / GIBS (composite, not live)" },
+              attribution: "Earth imagery: NASA Blue Marble / GIBS" },
             satellite: { type: "raster", tileSize: 256, maxzoom: 19,
               tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
               attribution: "Imagery &copy; Esri and its imagery contributors" },
@@ -106,11 +109,14 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
             "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.85, 5, 0.85, 7, 0] }
         }
       });
+      syncMapFrame();
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
       // No second renderer, tile cache reset, delayed swap or click is needed.
       function syncSkyCamera() {
         onCamera?.({ lng: map.getCenter().lng, lat: map.getCenter().lat,
-          bearing: map.getBearing(), pitch: map.getPitch() });
+          bearing: map.getBearing(), pitch: map.getPitch(),
+          offsetX: ((map.getPadding?.().left || 0) - (map.getPadding?.().right || 0)) / 2,
+          offsetY: ((map.getPadding?.().top || 0) - (map.getPadding?.().bottom || 0)) / 2 });
       }
       map.on("move", syncSkyCamera);
       syncSkyCamera();
@@ -132,6 +138,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         }
       });
       map.on("moveend", () => {
+        if (updatingMapFrame) return;
         cameraDestination = null;
         syncZoomMode();
         if (homeMotionPending && mode === "globe") {
@@ -172,7 +179,23 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     marker ??= new maplibregl.Marker({ color: "#d5fa79" });
     marker.setLngLat([lng, lat]).addTo(map);
   }
-  function resizeGlobe() { if (map) map.resize(); }
+  function syncMapFrame() {
+    if (!map?.setPadding) return;
+    const home = mode === "globe" && !selectedLocation;
+    const desktop = window.innerWidth > 900;
+    const padding = home
+      ? desktop ? { left: Math.round(window.innerWidth * 0.32), right: 0, top: 80, bottom: 80 }
+        : { left: 0, right: 0, top: 270, bottom: 190 }
+      : { left: 0, right: 0, top: 0, bottom: 0 };
+    const key = JSON.stringify(padding);
+    if (key === framePaddingKey) return;
+    framePaddingKey = key;
+    updatingMapFrame = true;
+    try { map.setPadding(padding); } finally { updatingMapFrame = false; }
+  }
+  function resizeGlobe() { if (map) { map.resize(); syncMapFrame();
+    if (mode === "globe" && !selectedLocation && !introActive) map.jumpTo({ zoom: homeZoom() });
+  } }
   function coordLabel(lat, lng) {
     return Math.abs(lat).toFixed(5) + "° " + (lat >= 0 ? "N" : "S") + " · " + Math.abs(lng).toFixed(5) + "° " + (lng >= 0 ? "E" : "W");
   }
@@ -202,10 +225,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   }
   // 수정된 부분: zoom changes only UI overlays; the underlying map stays mounted.
   function syncZoomMode() {
-    if (!map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
+    if (updatingMapFrame || !map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
     if (map.getZoom() >= DETAIL_ZOOM && mode !== "map") {
       comparisonRequestId++;
       mode = "map";
+      syncMapFrame();
       compareScene.hidden = true;
       globeScene.classList.remove("is-comparing");
       globeScene.classList.add("is-detail");
@@ -215,6 +239,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       updateLocationPanel();
     } else if (map.getZoom() < DETAIL_ZOOM - 0.5 && mode === "map") {
       mode = "globe";
+      syncMapFrame();
       mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
       refreshRasterLayers(false);
@@ -245,13 +270,14 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     comparisonRequestId++;
     mode = "globe";
     selectedLocation = false;
+    syncMapFrame();
     globeScene.hidden = false;
     globeScene.classList.remove("is-comparing", "is-detail");
     compareScene.hidden = true;
     mapScene.hidden = true;
     refreshRasterLayers(false);
     homeMotionPending = !reducedMotion.matches;
-    if (map) map.flyTo({ ...START, duration: reducedMotion.matches ? 0 : 1000 });
+    if (map) map.flyTo({ ...START, zoom: homeZoom(), duration: reducedMotion.matches ? 0 : 1000 });
   }
   function showComparisonFromMap() {
     motionInterrupted = true;
@@ -264,6 +290,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       Math.abs(lastComparedPoint.lng - lng) < 0.000001 && comparisonPairs.length;
     if (reuse) {
       mode = "compare";
+      syncMapFrame();
       globeScene.classList.add("is-comparing");
       compareScene.hidden = false;
     } else openComparison(lat, lng);
@@ -283,6 +310,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     compareScene.hidden = true;
     globeScene.classList.remove("is-comparing");
     mode = "globe";
+    syncMapFrame();
     // 수정된 부분: one uninterrupted camera flight, without screen-switch timers.
     map.flyTo({ center: [lng, lat], zoom: isNearIIT(lat, lng) ? 15 : 12, duration: reducedMotion.matches ? 0 : LOCAL_MAP_FLIGHT_MS });
     syncZoomMode();
@@ -390,6 +418,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     comparisonPairs = [];
     const requestId = ++comparisonRequestId;
     mode = "compare";
+    syncMapFrame();
     currentTarget = {
       lat,
       lng,

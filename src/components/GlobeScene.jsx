@@ -1,3 +1,4 @@
+import regionThumbnail from '../../assets/regions/illinois-tech.jpg';
 import { Starfield } from './Starfield.jsx';
 import { ComparisonScene } from './ComparisonScene.jsx';
 
@@ -14,9 +15,9 @@ export function GlobeScene({ onOpenModelResults, selectedPoint }) {
         </div>
 
         <div className="hero-content">
-          <div className="eyebrow"><span className="eyebrow-line"></span> EXPLORE THE INVISIBLE EARTH <span className="mission-index">/ 01</span></div>
+          <div className="eyebrow"><span className="eyebrow-line"></span> EXPLORE THE INVISIBLE EARTH</div>
           <h1>See beyond<br /><span>the surface.</span></h1>
-          <p className="hero-description">Rotate the Earth, choose a location, and view precomputed SAR images from two observation dates.</p>
+          <p className="hero-description">Explore published SAR imagery.<br />See how Earth changes over time.</p>
           <div className="hero-actions">
             <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>
@@ -30,19 +31,15 @@ export function GlobeScene({ onOpenModelResults, selectedPoint }) {
         <div className="view-status"><span className="small-cross">✦</span> LIVE 3D GLOBE <span className="view-status-dot"></span></div>
 
         <aside className="scene-rail" aria-label="Region controls">
-          <div className="rail-heading"><span className="rail-kicker">TARGET REGION</span><span className="rail-index">01—03</span></div>
           <div className="region-card">
-            <div className="region-image" aria-hidden="true"><span className="image-grid"></span><span className="image-target">✚</span></div>
+            <img className="region-thumbnail" src={regionThumbnail} alt="Satellite view of Illinois Tech and surrounding Chicago streets" />
             <div className="region-card-content">
               <span className="card-kicker"><span className="mini-dot"></span> FEATURED LOCATION</span>
               <h2>Illinois Tech</h2>
-              <p>Bronzeville · Chicago, USA</p>
-              <span className="latlng">41.8353° N &nbsp; 87.6270° W</span>
+              <p>Chicago, USA</p>
+              <button className="rail-link" id="railIIT"><span>Explore region</span><span aria-hidden="true">↗</span></button>
             </div>
           </div>
-          <button className="rail-link" id="railIIT"><span>GO TO STUDY AREA</span><span className="rail-link-circle">↗</span></button>
-          <div className="rail-divider"></div>
-          <p className="rail-footnote"><span className="footnote-square"></span> The globe is a visual basemap. Comparisons show published model outputs for available regions.</p>
         </aside>
 
         <div className="globe-controls" aria-label="Globe controls">
