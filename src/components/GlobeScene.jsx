@@ -26,7 +26,6 @@ export function GlobeScene({ onOpenModelResults, selectedPoint }) {
           </div>
         </div>
 
-        <div className="planet-label"><span className="label-line"></span><span>EARTH <small>01 / 01</small></span></div>
         <div className="view-status"><span className="small-cross">✦</span> LIVE 3D GLOBE <span className="view-status-dot"></span></div>
 
         <aside className="scene-rail" aria-label="Region controls">
