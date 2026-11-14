@@ -1,13 +1,15 @@
+import { createBackdrop } from '../skyBackdrop.js';
 import { useEffect, useRef } from 'react';
 import catalog from '../../assets/sky/stars.compact.json';
 import { starVector, skyCamera, projectStar } from '../skyProjection.js';
 
-// Real catalog positions, magnitudes and B−V colors; no random repeating pattern.
+const backdrop = createBackdrop();
+// Measured brighter stars remain at their original catalog coordinates.
 const stars = catalog.map(([longitude, latitude, magnitude, bv]) => {
   return {
     vector: starVector([longitude, latitude]),
-    radius: Math.max(0.42, 1.65 - magnitude * 0.19),
-    alpha: Math.max(0.18, Math.min(1, Math.pow(10, -0.16 * (magnitude - 1)))),
+    radius: Math.max(0.62, 1.65 - magnitude * 0.17),
+    alpha: Math.max(0.34, Math.min(1, Math.pow(10, -0.12 * (magnitude - 1)))),
     color: bv > 1.1 ? '255,209,161' : bv > 0.5 ? '255,239,214' : bv < 0 ? '185,213,255' : '226,236,255',
     glow: magnitude < 2.3,
   };
@@ -31,19 +33,25 @@ export function Starfield() {
         canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
       }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      context.fillStyle = '#020409';
+      context.fillStyle = '#010207';
       context.fillRect(0, 0, width, height);
       const view = skyCamera(camera, width, height);
+      for (const star of backdrop) {
+        const point = projectStar(star.vector, view);
+        if (!point) continue;
+        context.fillStyle = 'rgba(' + star.color + ',' + star.alpha + ')';
+        context.fillRect(point[0] - star.radius, point[1] - star.radius, star.radius * 2, star.radius * 2);
+      }
       for (const star of stars) {
         const point = projectStar(star.vector, view);
         if (!point) continue;
         const [x, y] = point;
         if (star.glow) {
-          const halo = context.createRadialGradient(x, y, 0, x, y, star.radius * 5);
+          const halo = context.createRadialGradient(x, y, 0, x, y, star.radius * 3.2);
           halo.addColorStop(0, 'rgba(' + star.color + ',' + star.alpha * 0.23 + ')');
           halo.addColorStop(1, 'rgba(' + star.color + ',0)');
           context.fillStyle = halo;
-          context.fillRect(x - star.radius * 5, y - star.radius * 5, star.radius * 10, star.radius * 10);
+          context.fillRect(x - star.radius * 5, y - star.radius * 5, star.radius * 6.4, star.radius * 10);
         }
         context.fillStyle = 'rgba(' + star.color + ',' + star.alpha + ')';
         context.beginPath();

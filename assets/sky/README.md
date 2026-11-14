@@ -10,3 +10,5 @@ Star size and brightness follow magnitude, with restrained B−V colors and soft
 This is a decorative inertial backdrop, not a date-, observer- or sidereal-time-calibrated astronomy simulation, and is not NASA imagery. The legacy build-sky.mjs / constellation-sky.svg remain optional offline chart tools; the app no longer loads that SVG.
 
 The app imports stars.compact.json, a lossless tuple-only build of the source catalog. Run node assets/sky/build-sky.mjs to regenerate it together with the legacy SVG.
+
+Density update: src/skyBackdrop.js supplements the 5,044 measured catalog stars with 36,000 seeded decorative faint points on the same sphere. Supplemental positions are illustrative, not catalog observations. No repeated screen-space texture is used.

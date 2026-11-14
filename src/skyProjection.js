@@ -19,7 +19,7 @@ export function skyCamera({ lng, lat, bearing = 0, pitch = 0 }, width, height) {
   };
 }
 export function projectStar(vector, camera) {
-  const dot = axis => vector.reduce((sum, n, i) => sum + n * axis[i], 0);
+  const dot = axis => vector[0] * axis[0] + vector[1] * axis[1] + vector[2] * axis[2];
   const depth = dot(camera.forward);
   if (depth <= 0.01) return null;
   const x = camera.width / 2 + camera.focal * dot(camera.right) / depth;

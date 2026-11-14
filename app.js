@@ -81,6 +81,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
+            earth: { type: "raster", tileSize: 256, maxzoom: 8,
+              tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
+              attribution: "Earth imagery: NASA Blue Marble / GIBS (composite, not live)" },
             satellite: { type: "raster", tileSize: 256, maxzoom: 19,
               tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
               attribution: "Imagery &copy; Esri and its imagery contributors" },
@@ -90,9 +93,17 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
           },
           layers: [
             { id: "satellite", type: "raster", source: "satellite" },
+            { id: "earth", type: "raster", source: "earth", paint: {
+              "raster-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 6, 0],
+              "raster-saturation": -0.12,
+              "raster-contrast": 0.015,
+              "raster-brightness-min": 0.055,
+              "raster-fade-duration": 400
+            } },
             { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } }
           ],
-          sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 1, 5, 1, 7, 0] }
+          sky: { "sky-color": "#050b16", "horizon-color": "#bddfff",
+            "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.85, 5, 0.85, 7, 0] }
         }
       });
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
@@ -466,6 +477,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   function applyBasemap() {
     if (!map || !map.getLayer("streets")) return;
     map.setLayoutProperty("streets", "visibility", activeBasemap === "streets" ? "visible" : "none");
+    if (map.getLayer("earth")) map.setLayoutProperty("earth", "visibility", activeBasemap === "streets" ? "none" : "visible");
     $("streetLayer").classList.toggle("is-selected", activeBasemap === "streets");
     $("satelliteLayer").classList.toggle("is-selected", activeBasemap === "satellite");
   }

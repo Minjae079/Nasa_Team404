@@ -1,3 +1,4 @@
+import { createBackdrop } from '../src/skyBackdrop.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -37,4 +38,17 @@ test('compact sky catalog preserves every source coordinate, magnitude and color
   const full = read('stars.6.json'); const compact = read('stars.compact.json');
   assert.equal(compact.length,5044);
   assert.deepEqual(compact,full.features.map(({geometry,properties})=>[...geometry.coordinates,properties.mag,Number(properties.bv)]));
+});
+
+test('dense background is deterministic on a sphere and stays distributed across views', () => {
+  const stars = createBackdrop();
+  assert.equal(stars.length, 36000);
+  assert.deepEqual(stars.slice(0, 20), createBackdrop(20));
+  for (const lng of [0,90,180,-90]) {
+    const visible = stars.filter(star => projectStar(star.vector, view(lng)));
+    assert.ok(visible.length > 2000);
+  }
+  for (const star of stars) {
+    assert.ok(Math.abs(Math.hypot(...star.vector)-1) < 1e-10);
+  }
 });
