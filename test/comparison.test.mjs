@@ -219,6 +219,7 @@ test('home globe approaches its original size before rotating; gestures stop rot
     getCanvas() { return { setAttribute() {} }; }
     on(name, handler) { this.events[name] = handler; }
     getLayer() { return false; }
+    stop() { this.stopped = true; }
     getZoom() { return 2; }
     getCenter() { return this.center; }
     flyTo(options) { this.flight = options; }
@@ -231,7 +232,7 @@ test('home globe approaches its original size before rotating; gestures stop rot
   const {controller, frames} = frontend(async () => ({ok:false}), {Map, Marker}, false);
   controller.initGlobe();
   const map = controller.state().map;
-  assert.equal(map.options.zoom, 0);
+  assert.equal(map.options.zoom, -0.75);
   map.events.load();
   assert.equal(map.flight.zoom, 2);
   assert.equal(map.flight.duration, 3000);
@@ -245,7 +246,7 @@ test('home globe approaches its original size before rotating; gestures stop rot
   tick(0); tick(16);
   assert.ok(map.center.lng < -86);
   assert.equal(map.center.lat, 34);
-  map.events.movestart({originalEvent:{type:'mousedown'}});
+  map.events.mousedown();
   assert.equal(frames.size, 0);
   controller.goHome();
   map.events.moveend();
@@ -259,4 +260,9 @@ test('home globe approaches its original size before rotating; gestures stop rot
   assert.equal(still.options.zoom, 2);
   assert.equal(still.flight, undefined);
   assert.equal(reduced.frames.size, 0);
+  controller.goHome();
+  map.events.touchstart();
+  assert.equal(map.stopped, true);
+  map.events.moveend();
+  assert.equal(frames.size, 0);
 });

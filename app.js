@@ -2,6 +2,7 @@
 export function createExplorer(maplibregl, { onSelection } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
+  const INTRO_ZOOM = -0.75;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.5;
   // 수정된 부분: duration in milliseconds for View local map.
@@ -63,7 +64,7 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, zoom: reducedMotion.matches ? START.zoom : 0, minZoom: 0, maxZoom: 19,
+        container: "globeViz", ...START, zoom: reducedMotion.matches ? START.zoom : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
         attributionControl: { compact: true },
         style: {
           version: 8, projection: { type: "globe" },
@@ -85,6 +86,15 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
       // No second renderer, tile cache reset, delayed swap or click is needed.
       map.on("zoom", syncZoomMode);
+      // Stop before a drag or wheel gesture so animation never fights the user.
+      for (const eventName of ["mousedown", "touchstart", "wheel"]) {
+        map.on(eventName, () => {
+          motionInterrupted = true;
+          const interruptIntro = homeMotionPending;
+          stopGlobeMotion();
+          if (interruptIntro) map.stop();
+        });
+      }
       map.on("movestart", event => {
         if (event.originalEvent) {
           motionInterrupted = true;
