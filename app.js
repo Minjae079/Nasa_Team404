@@ -36,14 +36,18 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
   let previousRotationTime = null;
   let homeMotionPending = false;
   let motionInterrupted = false;
+  let introActive = false;
   function stopGlobeMotion() {
     homeMotionPending = false;
+    introActive = false;
     if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
     rotationFrame = null;
     previousRotationTime = null;
   }
-  function startGlobeRotation() {
+  function startGlobeRotation({ intro = false } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
+    introActive = intro;
+    let introElapsed = 0;
     function rotate(time) {
       rotationFrame = null;
       if (disposed || reducedMotion.matches || mode !== "globe") return;
@@ -51,8 +55,16 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
       previousRotationTime = time;
       if (!document.hidden) {
         const center = map.getCenter();
-        // Change longitude, keeping the globe upright and at its existing size.
-        map.jumpTo({ center: [((center.lng - elapsed * 0.003 + 540) % 360) - 180, center.lat] });
+        const camera = { center: [((center.lng - elapsed * 0.006 + 540) % 360) - 180, center.lat] };
+        if (introActive) {
+          introElapsed += elapsed;
+          const progress = Math.min(introElapsed / 3000, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          camera.zoom = INTRO_ZOOM + (START.zoom - INTRO_ZOOM) * eased;
+          if (progress === 1) introActive = false;
+        }
+        // One camera update rotates and approaches together, then keeps rotating.
+        map.jumpTo(camera);
       }
       rotationFrame = window.requestAnimationFrame(rotate);
     }
@@ -64,7 +76,7 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, zoom: reducedMotion.matches ? START.zoom : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
+        container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? START.zoom : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
         attributionControl: { compact: true },
         style: {
           version: 8, projection: { type: "globe" },
@@ -90,7 +102,7 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
         map.on(eventName, () => {
           motionInterrupted = true;
-          const interruptIntro = homeMotionPending;
+          const interruptIntro = homeMotionPending || introActive;
           stopGlobeMotion();
           if (interruptIntro) map.stop();
         });
@@ -115,17 +127,15 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
         if (mode === "map") {
           currentTarget = { lat, lng, name: isNearIIT(lat, lng) ? IIT.name : "Selected location" };
           selectedLocation = true;
+          showSelectionMarker(lat, lng);
           updateLocationPanel();
         } else flyTo(lat, lng);
       });
       map.on("load", () => {
-        marker = new maplibregl.Marker({ color: "#d5fa79" })
-          .setLngLat([currentTarget.lng, currentTarget.lat]).addTo(map);
         applyBasemap();
         installRasterLayers();
         if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
-          homeMotionPending = true;
-          map.flyTo({ ...START, duration: 3000, easing: t => 1 - Math.pow(1 - t, 3) });
+          startGlobeRotation({ intro: true });
         }
       });
       map.on("error", event => {
@@ -139,6 +149,11 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
       console.error("Unable to create Earth map", error);
       fallback.hidden = false;
     }
+  }
+  function showSelectionMarker(lat, lng) {
+    if (!map) return;
+    marker ??= new maplibregl.Marker({ color: "#d5fa79" });
+    marker.setLngLat([lng, lat]).addTo(map);
   }
   function resizeGlobe() { if (map) map.resize(); }
   function coordLabel(lat, lng) {
@@ -207,6 +222,8 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
     motionInterrupted = true;
     stopGlobeMotion();
     onSelection?.(null);
+    marker?.remove();
+    marker = null;
     cameraDestination = START.zoom;
     comparisonRequestId++;
     mode = "globe";
@@ -245,6 +262,7 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
     comparisonRequestId++;
     currentTarget = { lat, lng, name: isNearIIT(lat, lng) ? IIT.name : "Selected location" };
     selectedLocation = true;
+    showSelectionMarker(lat, lng);
     compareScene.hidden = true;
     globeScene.classList.remove("is-comparing");
     mode = "globe";
@@ -362,8 +380,8 @@ export function createExplorer(maplibregl, { onSelection } = {}) {
         ? "Illinois Tech · Chicago"
         : "Selected Earth region",
     };
-    // 수정된 부분: move the selection pin immediately, even before images finish loading.
-    if (marker) marker.setLngLat([lng, lat]);
+    // Create a pin only after an explicit location selection.
+    showSelectionMarker(lat, lng);
     globeScene.hidden = false;
     globeScene.classList.remove("is-detail");
     globeScene.classList.add("is-comparing");

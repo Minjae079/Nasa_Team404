@@ -90,6 +90,7 @@ test('reselecting a comparison location moves the pin before the search complete
   controller.initGlobe();
   const map = controller.state().map;
   map.events.load();
+  assert.equal(pin, undefined);
   const first = controller.openComparison(30, -90);
   assert.deepEqual(Array.from(pin.coords), [-90, 30]);
   finish(result());
@@ -177,7 +178,12 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
       this.events.moveend();
     }
   }
-  const { controller, node } = frontend(async () => result(), { Map });
+  class Marker {
+    setLngLat(coords) { this.coords = coords; return this; }
+    addTo() { return this; }
+    remove() {}
+  }
+  const { controller, node } = frontend(async () => result(), { Map, Marker });
   controller.initGlobe();
   const map = controller.state().map;
   map.zoom = 7;
@@ -213,42 +219,54 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
 });
 
 
-test('home globe approaches its original size before rotating; gestures stop rotation', () => {
+test('globe rotates while approaching, stays unmarked until selection, and respects motion preferences', () => {
   class Map {
-    constructor(options) { this.options = options; this.events = {}; this.center = { lng: -86, lat: 34 }; }
+    constructor(options) { this.options = options; this.events = {}; this.center = { lng: options.center[0], lat: options.center[1] }; this.zoom = options.zoom; }
     getCanvas() { return { setAttribute() {} }; }
     on(name, handler) { this.events[name] = handler; }
     getLayer() { return false; }
     stop() { this.stopped = true; }
-    getZoom() { return 2; }
+    getZoom() { return this.zoom; }
     getCenter() { return this.center; }
     flyTo(options) { this.flight = options; }
-    jumpTo({ center }) { this.center = { lng: center[0], lat: center[1] }; }
+    jumpTo({ center, zoom }) { this.center = { lng: center[0], lat: center[1] }; if (zoom !== undefined) this.zoom = zoom; }
   }
+  const pins = [];
   class Marker {
-    setLngLat() { return this; }
-    addTo() { return this; }
+    constructor() { pins.push(this); }
+    setLngLat(coords) { this.coords = coords; return this; }
+    addTo() { this.visible = true; return this; }
+    remove() { this.visible = false; }
   }
   const {controller, frames} = frontend(async () => ({ok:false}), {Map, Marker}, false);
   controller.initGlobe();
   const map = controller.state().map;
   assert.equal(map.options.zoom, -0.75);
   map.events.load();
-  assert.equal(map.flight.zoom, 2);
-  assert.equal(map.flight.duration, 3000);
-  assert.equal(frames.size, 0);
-  map.events.moveend();
+  assert.equal(pins.length, 0);
+  assert.equal(frames.size, 1);
   function tick(time) {
     const [id, callback] = frames.entries().next().value;
     frames.delete(id);
     callback(time);
   }
+  const startLng = map.center.lng;
   tick(0); tick(16);
-  assert.ok(map.center.lng < -86);
-  assert.equal(map.center.lat, 34);
+  assert.ok(map.center.lng < startLng);
+  assert.ok(map.zoom > -0.75 && map.zoom < 2);
+  for (let time = 80; time <= 3216; time += 64) tick(time);
+  assert.equal(map.zoom, 2);
+  const arrivedLng = map.center.lng;
+  tick(3280);
+  assert.ok(map.center.lng < arrivedLng);
+  assert.equal(map.zoom, 2);
   map.events.mousedown();
   assert.equal(frames.size, 0);
+  map.events.click({lngLat:{lat:35,lng:130}});
+  assert.equal(pins.length, 1);
+  assert.deepEqual(Array.from(pins[0].coords), [130,35]);
   controller.goHome();
+  assert.equal(pins[0].visible, false);
   map.events.moveend();
   assert.equal(frames.size, 1);
   controller.openMap(41, -87);
@@ -256,13 +274,19 @@ test('home globe approaches its original size before rotating; gestures stop rot
   const reduced = frontend(async () => ({ok:false}), {Map, Marker}, true);
   reduced.controller.initGlobe();
   const still = reduced.controller.state().map;
+  const pinCount = pins.length;
   still.events.load();
   assert.equal(still.options.zoom, 2);
   assert.equal(still.flight, undefined);
   assert.equal(reduced.frames.size, 0);
-  controller.goHome();
-  map.events.touchstart();
-  assert.equal(map.stopped, true);
-  map.events.moveend();
-  assert.equal(frames.size, 0);
+  assert.equal(pins.length, pinCount);
+  const interrupted = frontend(async () => ({ok:false}), {Map, Marker}, false);
+  interrupted.controller.initGlobe();
+  const interruptedMap = interrupted.controller.state().map;
+  interruptedMap.events.load();
+  interruptedMap.events.touchstart();
+  assert.equal(interrupted.frames.size, 0);
+  assert.equal(interruptedMap.stopped, true);
+  interruptedMap.events.moveend();
+  assert.equal(interrupted.frames.size, 0);
 });
