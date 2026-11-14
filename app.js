@@ -286,6 +286,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     openComparison(lat, lng);
   }
   function goHome() {
+    // Home always shows the natural Earth imagery, regardless of local-map choice.
+    setBasemap("satellite");
     motionInterrupted = true;
     stopGlobeMotion();
     onSelection?.(null);
@@ -535,6 +537,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   function applyBasemap() {
     if (!map || !map.getLayer("streets")) return;
     map.setLayoutProperty("streets", "visibility", activeBasemap === "streets" ? "visible" : "none");
+    if (map.getLayer("satellite")) map.setLayoutProperty("satellite", "visibility", activeBasemap === "streets" ? "none" : "visible");
     if (map.getLayer("earth")) map.setLayoutProperty("earth", "visibility", activeBasemap === "streets" ? "none" : "visible");
     $("streetLayer").classList.toggle("is-selected", activeBasemap === "streets");
     $("satelliteLayer").classList.toggle("is-selected", activeBasemap === "satellite");

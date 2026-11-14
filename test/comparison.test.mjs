@@ -169,7 +169,7 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
     getCanvas() { return { setAttribute() {} }; }
     getZoom() { return this.zoom; }
     getCenter() { return this.center; }
-    getLayer(id) { return ['streets', 'satellite'].includes(id); }
+    getLayer(id) { return ['streets', 'satellite', 'earth'].includes(id); }
     setLayoutProperty(id, property, value) { this.properties[id + property] = value; }
     flyTo(options) {
       this.zoom = options.zoom;
@@ -211,7 +211,12 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
   assert.equal(controller.state().mode, 'map');
   controller.setBasemap('streets');
   assert.equal(map.properties.streetsvisibility, 'visible');
+  assert.equal(map.properties.earthvisibility, 'none');
+  assert.equal(map.properties.satellitevisibility, 'none');
   controller.goHome();
+  assert.equal(map.properties.streetsvisibility, 'none');
+  assert.equal(map.properties.satellitevisibility, 'visible');
+  assert.equal(map.properties.earthvisibility, 'visible');
   assert.equal(controller.state().mode, 'globe');
   assert.equal(node('mapScene').hidden, true);
   assert.equal(controller.state().map, map);
