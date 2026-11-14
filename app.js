@@ -11,6 +11,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const SCENE_FLIGHT_MS = 1500;
   const $ = id => document.getElementById(id);
   const globeScene = $("globeScene");
+  globeScene.style?.setProperty("--scene-motion-duration", `${SCENE_FLIGHT_MS}ms`);
   const mapScene = $("mapScene");
   const compareScene = $("compareScene");
   const fallback = $("globeFallback");
