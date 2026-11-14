@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "replace-with-unique-analysis-id",
+  "title": "Replace with actual region title",
+  "crs": "EPSG:4326",
+  "bounds": [-87.7, 41.8, -87.6, 41.9],
+  "before": {
+    "observed_at": "2026-10-01T00:00:00Z",
+    "source_scene_id": "REPLACE_WITH_ACTUAL_BEFORE_ASF_PRODUCT_ID"
+  },
+  "after": {
+    "observed_at": "2026-10-13T00:00:00Z",
+    "source_scene_id": "REPLACE_WITH_ACTUAL_AFTER_ASF_PRODUCT_ID"
+  },
+  "model_version": "REPLACE_WITH_ACTUAL_PIPELINE_VERSION"
+}

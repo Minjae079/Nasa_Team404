@@ -1,6 +1,6 @@
 import { ComparisonScene } from './ComparisonScene.jsx';
 
-export function GlobeScene({ onOpenModelResults }) {
+export function GlobeScene({ onOpenModelResults, selectedPoint }) {
   return (<section id="globeScene" className="scene scene-globe" aria-label="Interactive 3D Earth">
         <div className="starfield" aria-hidden="true"></div>
         <div className="globe-aura" aria-hidden="true"></div>
@@ -15,7 +15,7 @@ export function GlobeScene({ onOpenModelResults }) {
         <div className="hero-content">
           <div className="eyebrow"><span className="eyebrow-line"></span> EXPLORE THE INVISIBLE EARTH <span className="mission-index">/ 01</span></div>
           <h1>See beyond<br /><span>the surface.</span></h1>
-          <p className="hero-description">Rotate the Earth, choose a location, and compare real NISAR SAR observation previews from two matched dates.</p>
+          <p className="hero-description">Rotate the Earth, choose a location, and view precomputed SAR images from two observation dates.</p>
           <div className="hero-actions">
             <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>
@@ -26,7 +26,6 @@ export function GlobeScene({ onOpenModelResults }) {
           </div>
         </div>
 
-        <div className="planet-label"><span className="label-line"></span><span>EARTH <small>01 / 01</small></span></div>
         <div className="view-status"><span className="small-cross">✦</span> LIVE 3D GLOBE <span className="view-status-dot"></span></div>
 
         <aside className="scene-rail" aria-label="Region controls">
@@ -42,7 +41,7 @@ export function GlobeScene({ onOpenModelResults }) {
           </div>
           <button className="rail-link" id="railIIT"><span>GO TO STUDY AREA</span><span className="rail-link-circle">↗</span></button>
           <div className="rail-divider"></div>
-          <p className="rail-footnote"><span className="footnote-square"></span> The globe is a visual basemap. Comparisons use NASA ASF SAR browse previews, not quantitative change maps.</p>
+          <p className="rail-footnote"><span className="footnote-square"></span> The globe is a visual basemap. Comparisons show published model outputs for available regions.</p>
         </aside>
 
         <div className="globe-controls" aria-label="Globe controls">
@@ -55,5 +54,5 @@ export function GlobeScene({ onOpenModelResults }) {
         <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> CLICK TO EXPLORE</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · TAP</span></div>
         <div id="mapLoadStatus" className="map-load-status" role="status" hidden></div>
         <div className="globe-bottom-right"><span className="square-marker"></span> 3D WORLD VIEW <span className="guide-split">·</span> EXPERIMENTAL</div>
-      <ComparisonScene /></section>);
+      <ComparisonScene point={selectedPoint} /></section>);
 }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-function frontend(fetch, maplibregl, reduceMotion = true) {
+function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   const nodes = new Map();
   const node = id => {
     if (!nodes.has(id)) nodes.set(id, {
@@ -13,14 +13,17 @@ function frontend(fetch, maplibregl, reduceMotion = true) {
     });
     return nodes.get(id);
   };
+  const frames = new Map();
+  let frameId = 0;
   const context = vm.createContext({
-    fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl,
-    window: { matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
+    fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl, options,
+    window: { requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
+      cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
       createElement: () => ({}) },
   });
   // Expose the real controller without booting WebGL or CDN assets.
-  const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace('export function', 'function') + '\ncreateExplorer(maplibregl);';
+  const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace('export function', 'function') + '\ncreateExplorer(maplibregl, options);';
   vm.runInContext(source.replace('  function start() {', `
     globalThis.controller = {
       openComparison, setImage, initGlobe, syncZoomMode, goHome, openMap, setBasemap,
@@ -29,7 +32,7 @@ function frontend(fetch, maplibregl, reduceMotion = true) {
       leave: () => { comparisonRequestId++; mode = 'map'; },
     };
     function start() {`), context);
-  return { controller: context.controller, node };
+  return { controller: context.controller, node, frames };
 }
 
 const pair = {
@@ -37,6 +40,21 @@ const pair = {
   after: { date: '2026-10-22', browse: 'https://nisar.asf.earthdatacloud.nasa.gov/BROWSE/after.png' },
 };
 const result = () => ({ ok: true, json: async () => ({ pairs: [pair] }) });
+
+test('React storage mode receives geographic selections without requesting NASA photos', async () => {
+  let requests = 0;
+  const selections = [];
+  const { controller } = frontend(async () => { requests++; return result(); }, undefined, true,
+    { onSelection: point => selections.push(point) });
+  await controller.openComparison(41.5, -87.5);
+  await controller.openComparison(35, 130);
+  assert.equal(requests, 0);
+  assert.equal(selections.length, 2);
+  assert.equal(selections[1].lat, 35);
+  assert.equal(selections[1].lng, 130);
+  controller.goHome();
+  assert.equal(selections.at(-1), null);
+});
 
 test('new searches clear previous results, including when the search fails', async () => {
   let fail = false;
@@ -192,4 +210,53 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
   assert.equal(node('mapScene').hidden, true);
   assert.equal(controller.state().map, map);
   assert.equal(instances, 1);
+});
+
+
+test('home globe approaches its original size before rotating; gestures stop rotation', () => {
+  class Map {
+    constructor(options) { this.options = options; this.events = {}; this.center = { lng: -86, lat: 34 }; }
+    getCanvas() { return { setAttribute() {} }; }
+    on(name, handler) { this.events[name] = handler; }
+    getLayer() { return false; }
+    getZoom() { return 2; }
+    getCenter() { return this.center; }
+    flyTo(options) { this.flight = options; }
+    jumpTo({ center }) { this.center = { lng: center[0], lat: center[1] }; }
+  }
+  class Marker {
+    setLngLat() { return this; }
+    addTo() { return this; }
+  }
+  const {controller, frames} = frontend(async () => ({ok:false}), {Map, Marker}, false);
+  controller.initGlobe();
+  const map = controller.state().map;
+  assert.equal(map.options.zoom, 0);
+  map.events.load();
+  assert.equal(map.flight.zoom, 2);
+  assert.equal(map.flight.duration, 3000);
+  assert.equal(frames.size, 0);
+  map.events.moveend();
+  function tick(time) {
+    const [id, callback] = frames.entries().next().value;
+    frames.delete(id);
+    callback(time);
+  }
+  tick(0); tick(16);
+  assert.ok(map.center.lng < -86);
+  assert.equal(map.center.lat, 34);
+  map.events.movestart({originalEvent:{type:'mousedown'}});
+  assert.equal(frames.size, 0);
+  controller.goHome();
+  map.events.moveend();
+  assert.equal(frames.size, 1);
+  controller.openMap(41, -87);
+  assert.equal(frames.size, 0);
+  const reduced = frontend(async () => ({ok:false}), {Map, Marker}, true);
+  reduced.controller.initGlobe();
+  const still = reduced.controller.state().map;
+  still.events.load();
+  assert.equal(still.options.zoom, 2);
+  assert.equal(still.flight, undefined);
+  assert.equal(reduced.frames.size, 0);
 });

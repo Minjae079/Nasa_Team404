@@ -1,6 +1,5 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
-export function createExplorer(maplibregl) {
-  "use strict";
+export function createExplorer(maplibregl, { onSelection } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const DETAIL_ZOOM = 6;
@@ -32,12 +31,39 @@ export function createExplorer(maplibregl) {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const mobileLayout = window.matchMedia("(max-width: 800px)");
 
-  // 수정된 부분: a single MapLibre canvas renders the globe and local map.
+  let rotationFrame = null;
+  let previousRotationTime = null;
+  let homeMotionPending = false;
+  let motionInterrupted = false;
+  function stopGlobeMotion() {
+    homeMotionPending = false;
+    if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
+    rotationFrame = null;
+    previousRotationTime = null;
+  }
+  function startGlobeRotation() {
+    if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
+    function rotate(time) {
+      rotationFrame = null;
+      if (disposed || reducedMotion.matches || mode !== "globe") return;
+      const elapsed = previousRotationTime === null ? 0 : Math.min(time - previousRotationTime, 64);
+      previousRotationTime = time;
+      if (!document.hidden) {
+        const center = map.getCenter();
+        // Change longitude, keeping the globe upright and at its existing size.
+        map.jumpTo({ center: [((center.lng - elapsed * 0.003 + 540) % 360) - 180, center.lat] });
+      }
+      rotationFrame = window.requestAnimationFrame(rotate);
+    }
+    rotationFrame = window.requestAnimationFrame(rotate);
+  }
+
+  // A single MapLibre canvas renders the globe and local map.
   function initGlobe() {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, minZoom: 0, maxZoom: 19,
+        container: "globeViz", ...START, zoom: reducedMotion.matches ? START.zoom : 0, minZoom: 0, maxZoom: 19,
         attributionControl: { compact: true },
         style: {
           version: 8, projection: { type: "globe" },
@@ -61,12 +87,18 @@ export function createExplorer(maplibregl) {
       map.on("zoom", syncZoomMode);
       map.on("movestart", event => {
         if (event.originalEvent) {
+          motionInterrupted = true;
+          stopGlobeMotion();
           cameraDestination = null;
         }
       });
       map.on("moveend", () => {
         cameraDestination = null;
         syncZoomMode();
+        if (homeMotionPending && mode === "globe") {
+          homeMotionPending = false;
+          startGlobeRotation();
+        }
       });
       map.on("click", event => {
         const { lat, lng } = event.lngLat;
@@ -81,6 +113,10 @@ export function createExplorer(maplibregl) {
           .setLngLat([currentTarget.lng, currentTarget.lat]).addTo(map);
         applyBasemap();
         installRasterLayers();
+        if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
+          homeMotionPending = true;
+          map.flyTo({ ...START, duration: 3000, easing: t => 1 - Math.pow(1 - t, 3) });
+        }
       });
       map.on("error", event => {
         console.error("Map resource unavailable", event.error);
@@ -143,10 +179,14 @@ export function createExplorer(maplibregl) {
     }
   }
   function globeZoom(direction) {
+    motionInterrupted = true;
+    stopGlobeMotion();
     cameraDestination = null;
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
   }
   function flyTo(lat, lng) {
+    motionInterrupted = true;
+    stopGlobeMotion();
     cameraDestination = PHOTO_ZOOM;
     selectedLocation = true;
     // 수정된 부분: search starts immediately, independently of camera animation.
@@ -154,6 +194,9 @@ export function createExplorer(maplibregl) {
     if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : 1000 });
   }
   function goHome() {
+    motionInterrupted = true;
+    stopGlobeMotion();
+    onSelection?.(null);
     cameraDestination = START.zoom;
     comparisonRequestId++;
     mode = "globe";
@@ -163,9 +206,12 @@ export function createExplorer(maplibregl) {
     compareScene.hidden = true;
     mapScene.hidden = true;
     refreshRasterLayers(false);
+    homeMotionPending = !reducedMotion.matches;
     if (map) map.flyTo({ ...START, duration: reducedMotion.matches ? 0 : 1000 });
   }
   function showComparisonFromMap() {
+    motionInterrupted = true;
+    stopGlobeMotion();
     cameraDestination = PHOTO_ZOOM;
     const { lat, lng } = currentTarget;
     globeScene.classList.remove("is-detail");
@@ -181,6 +227,9 @@ export function createExplorer(maplibregl) {
     if (map) map.flyTo({ center: [lng, lat], zoom: PHOTO_ZOOM, duration: reducedMotion.matches ? 0 : LOCAL_MAP_FLIGHT_MS });
   }
   function openMap(lat, lng) {
+    motionInterrupted = true;
+    stopGlobeMotion();
+    onSelection?.(null);
     cameraDestination = null;
     if (!map) { fallback.hidden = false; return; }
     comparisonRequestId++;
@@ -315,6 +364,10 @@ export function createExplorer(maplibregl) {
     $("compareCoordinates").textContent = coordLabel(lat, lng);
     $("sarCompareGrid").hidden = true;
     $("pairChooser").hidden = true;
+    if (onSelection) {
+      onSelection({ lat, lng });
+      return;
+    }
     updateComparisonStatus(
       "Searching NASA ASF catalog for matched NISAR GCOV acquisitions…"
     );
@@ -498,6 +551,8 @@ export function createExplorer(maplibregl) {
     start,
     destroy() {
       disposed = true;
+      stopGlobeMotion();
+      onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
       if (map) map.remove();
