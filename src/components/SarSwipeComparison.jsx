@@ -4,6 +4,7 @@ import { ObservationInsights, ObservationSiren } from './ObservationContext.jsx'
 const clamp = value => Math.max(0, Math.min(100, value));
 
 export function SarSwipeComparison({
+  sceneId,
   title,
   point,
   serviceState,
