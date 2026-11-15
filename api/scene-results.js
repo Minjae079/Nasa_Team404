@@ -10,11 +10,12 @@ export async function getSceneResults(request, client, { allowMock = process.env
       (id !== null && !/^[a-zA-Z0-9_-]{1,80}$/.test(id)) || (!hasPoint && !id)) {
     return apiJson({ error: 'INVALID_QUERY' }, 400);
   }
+  const includeMock = allowMock && params.get('includeMock') !== 'false';
   const bucket = client.storage.from('sarscope-data');
   const indexed = await readSceneIndex(bucket);
-  if (allowMock) indexed.push(...await readSceneIndex(bucket, { allowMock: true, indexPath: MOCK_SCENE_INDEX }));
+  if (includeMock) indexed.push(...await readSceneIndex(bucket, { allowMock: true, indexPath: MOCK_SCENE_INDEX }));
   const rows = indexed.filter(row => row.published &&
-    (!row.metadata.synthetic || allowMock) &&
+    (!row.metadata.synthetic || includeMock) &&
     (!hasPoint || containsPoint(row.metadata, lat, lng)))
     .sort((a, b) => Date.parse(b.metadata.after.observed_at) - Date.parse(a.metadata.after.observed_at) || a.metadata.id.localeCompare(b.metadata.id));
   const selected = (id ? rows.find(row => row.metadata.id === id) : rows[0])?.metadata;
@@ -25,7 +26,7 @@ export async function getSceneResults(request, client, { allowMock = process.env
   if (downloaded.data.size > 64000) throw new InvalidSceneBundle('Metadata too large');
   let value;
   try { value = JSON.parse(await downloaded.data.text()); } catch { throw new InvalidSceneBundle('Invalid metadata JSON'); }
-  const metadata = parseMetadata(value, { allowMock });
+  const metadata = parseMetadata(value, { allowMock: includeMock });
   if (JSON.stringify(metadata) !== JSON.stringify(selected)) throw new InvalidSceneBundle('Metadata does not match index');
   const images = {};
   for (const name of IMAGE_NAMES) {

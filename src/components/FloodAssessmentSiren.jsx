@@ -24,9 +24,7 @@ export function FloodAssessmentSiren({ sceneId, monitoringSite }) {
   }, [sceneId, monitoringSite]);
 
   const level = monitoringSite?.level ?? 0;
-  const text = monitoringSite?.screening === 'scenario'
-    ? `${['Unassessed', 'Low', 'Caution', 'High'][level]} · Demo screening`
-    : monitoringSite ? screeningLabels[level] : assessment;
+  const text = monitoringSite ? screeningLabels[level] : assessment;
   return <div className="sar-console-alert" aria-label="Flood assessment status">
     <InsightTrigger text={text} ariaLabel={`Flood screening: ${text}`} level={level} className="sar-siren-button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"

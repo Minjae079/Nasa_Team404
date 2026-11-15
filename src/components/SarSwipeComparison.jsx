@@ -6,6 +6,7 @@ const clamp = value => Math.max(0, Math.min(100, value));
 
 export function SarSwipeComparison({
   sceneId,
+  sceneSelector,
   title,
   point,
   serviceState,
@@ -120,7 +121,8 @@ export function SarSwipeComparison({
       </header>
       <div className="sar-console-body">
       <section className="sar-console-imagery" aria-label="Satellite imagery">
-        <div className="sar-console-toolbar">
+        {sceneSelector}
+      <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
@@ -222,12 +224,6 @@ export function SarSwipeComparison({
           </div>
         </div>
       </div>
-      {aiUrl && <p className="sar-ai-caption" aria-hidden={mode !== 'ai'}>
-        <span aria-hidden="true" />
-        {monitoringSite?.candidateShare === 0
-          ? 'No model candidates above the display threshold.'
-          : 'Blue highlights experimental V1-long flood candidates.'}
-      </p>}
       </div>
       <ObservationInsights sceneId={sceneId} scenarioMetrics={monitoringSite?.scenarioMetrics} />
       </div>

@@ -367,7 +367,6 @@
 }
 
 .sar-view-ai { cursor: default; touch-action: auto; }
-.sar-ai-caption { margin: 5px 0 0; color: #a5b5bf; font-size: .68rem; }
 .monitoring-site-pin {
   width: 15px; height: 15px; padding: 0;
   border: 2px solid #fff;
@@ -482,12 +481,21 @@
   background: #eff5e6;
   border-color: #eff5e6;
 }
-.sar-ai-caption {
-  display: flex; align-items: center; gap: 7px;
-  color: #d6e5ef; font-size: 11px; margin-top: 8px;
+.sar-scene-selector {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: #a8bac3;
 }
-.sar-ai-caption[aria-hidden='true'] { visibility: hidden; }
-.sar-ai-caption > span { background: #55b7ff; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+.sar-scene-selector select {
+  width: 100%;
+  padding: 6px 9px;
+  border: 1px solid #4a6572;
+  border-radius: 6px;
+  background: #142833;
+  color: #f0f5f6;
+}
 
 .monitoring-site-pin[data-level] {
   width: 22px; height: 30px; background: transparent; border: 0;

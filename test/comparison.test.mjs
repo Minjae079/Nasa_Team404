@@ -419,10 +419,13 @@ test('typed coordinates reuse geographic selection and the marker; invalid value
   assert.deepEqual(Array.from(pin.coords),[151.2,-33.8]);
   assert.equal(count,1);
   controller.openMap(35,130);
-  assert.equal(controller.state().mode,'map');
+  assert.equal(controller.state().mode,'compare');
+  controller.state().map.flight.zoom = 8;
+  controller.syncZoomMode();
+  assert.equal(controller.state().mode,'compare');
   assert.equal(controller.selectCoordinates(41.83531,-87.627),true);
   assert.deepEqual(Array.from(pin.coords),[-87.627,41.83531]);
-  assert.equal(controller.state().mode,'map');
+  assert.equal(controller.state().mode,'compare');
 });
 
 
@@ -450,7 +453,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
     addTo() { return this; }
     remove() {}
   }
-  const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1 };
+  const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1, worldPin: { lat: -31, lng: 145 } };
   const high = { title: 'Chókwè', lat: -24.52, lng: 33.025, level: 3, bounds: [32.975, -24.566, 33.075, -24.474] };
   const { controller, frames } = frontend(async () => ({ok:false}), {Map, Marker}, false, {
     monitoringSites: [site, high],
@@ -473,7 +476,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   for (const [lng, lat] of ring) {
     const distance = Math.acos(Math.sin(high.lat * radians) * Math.sin(lat * radians)
       + Math.cos(high.lat * radians) * Math.cos(lat * radians) * Math.cos((lng - high.lng) * radians));
-    assert.ok(Math.abs(distance / radians - 3.5) < 1e-8);
+    assert.ok(Math.abs(distance / radians - 1.8) < 1e-8);
   }
   const halo = map.options.style.layers.find(layer => layer.id === 'high-risk-location-halo');
   assert.equal(halo.type, 'line');
@@ -491,7 +494,8 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.equal(pins.length, 2);
   assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
   assert.equal(map.paint['high-risk-location-haloline-opacity'].at(-1), 0);
-  assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
+  assert.deepEqual(Array.from(pins[0].coords), [site.worldPin.lng, site.worldPin.lat]);
+  assert.equal(pins[0].options.element.dataset.level, '0');
   assert.equal(pins[0].options.anchor, 'bottom');
   assert.equal(pins[0].options.subpixelPositioning, true);
   const clicks = pins[0].options.element.events;

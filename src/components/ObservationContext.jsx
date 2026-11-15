@@ -7,17 +7,17 @@ import { fetchJson } from '../lib/api.js';
 const pendingContext = [
   {
     key: 'rainfall',
-    label: 'Rainfall',
+    label: 'Rainfall in the last 7 days',
     description: 'Satellite-estimated precipitation'
   },
   {
     key: 'waterHistory',
-    label: 'Water History',
+    label: 'Historical water occurrence',
     description: 'Historical surface water occurrence'
   },
   {
     key: 'relativeElevation',
-    label: 'Relative Elevation',
+    label: 'Relative elevation',
     description: 'Elevation relative to nearby terrain'
   },
 ];
@@ -85,15 +85,15 @@ export function ObservationContext({
 const insightItems = [
   {
     key: 'rainfall',
-    label: 'Rainfall',
+    label: 'Rainfall in the last 7 days',
   },
   {
     key: 'waterHistory',
-    label: 'Water history',
+    label: 'Historical water occurrence',
   },
   {
     key: 'relativeElevation',
-    label: 'Elevation',
+    label: 'Relative elevation',
   },
 ];
 
@@ -374,7 +374,7 @@ export function ObservationInsights({ sceneId, scenarioMetrics }) {
         const value = formatMetric(item.key, metric);
 
         const summary = value ?? (context.state === 'loading' ? 'Loading…' : 'Unavailable');
-        const text = `${item.label} · ${summary}${scenarioMetrics ? ' · Demo' : ''}`;
+        const text = `${item.label} · ${summary}`;
 
         return (
           <div

@@ -3,7 +3,7 @@ function globeLocatorRing({ lat, lng }) {
   // Sample a circle at a constant angular distance along the Earth's surface.
   const radians = Math.PI / 180;
   const latitude = lat * radians;
-  const radius = 3.5 * radians;
+  const radius = 1.8 * radians;
   const segments = 64;
   const coordinates = Array.from({ length: segments }, (_, index) => {
     const bearing = index * 2 * Math.PI / segments;
@@ -43,6 +43,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const listeners = [];
   let disposed = false;
   function listen(target, event, handler, options) {
+    if (!target) return;
     target.addEventListener(event, handler, options);
     listeners.push(() => target.removeEventListener(event, handler, options));
   }
@@ -140,7 +141,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
 
   const highRiskAreas = {
     type: 'FeatureCollection',
-    features: monitoringSites.filter(site => site.level === 3).flatMap(site => {
+    features: monitoringSites.filter(site => site.level === 3 && !site.worldPin).flatMap(site => {
       const locator = { type: 'Feature', properties: {}, geometry: globeLocatorRing(site) };
       if (!site.bounds) return [locator];
       const [west, south, east, north] = site.bounds;
@@ -260,7 +261,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           updateLocationPanel();
         } else {
           // Keep background double-clicks in the current view.
-          const zoom = Math.max(map.getZoom(), Math.min(map.getZoom() + 1, DETAIL_ZOOM - 0.1));
+          const limit = onSelection ? map.getMaxZoom?.() ?? 19 : DETAIL_ZOOM - 0.1;
+          const zoom = Math.max(map.getZoom(), Math.min(map.getZoom() + 1, limit));
           motionInterrupted = true;
           stopGlobeMotion();
           resumeAfterInteraction = mode === "globe";
@@ -304,13 +306,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'monitoring-site-pin';
-      const warning = site.screening === 'scenario' ? 'High demo screening' : 'High screening level';
-      element.setAttribute('aria-label', site.level === 3
-        ? `${warning}. Open NISAR observations for ${site.title}`
-        : `Open NISAR observations for ${site.title}`);
-      element.dataset.level = String(site.level ?? 0);
+      const pin = site.worldPin ?? site;
+      const level = site.worldPin ? 0 : site.level ?? 0;
+      const label = site.worldPin ? 'Observation shortcut' : level === 3 ? 'High screening level' : 'NISAR observation';
+      element.setAttribute('aria-label', `${label}. Open NISAR observations for ${site.title}`);
+      element.dataset.level = String(level);
       element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
-      if (site.level === 3) {
+      if (level === 3) {
         element.innerHTML += '<span class="monitoring-pin-warning" aria-hidden="true">!</span>';
       }
       listen(element, 'pointerdown', event => {
@@ -330,13 +332,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       });
       listen(element, 'dblclick', event => event.stopPropagation());
       monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
-        .setLngLat([site.lng, site.lat]).addTo(map));
+        .setLngLat([pin.lng, pin.lat]).addTo(map));
     }
   }
 
   function showSelectionMarker(lat, lng) {
     if (!map) return;
-    if (monitoringSites.some(site => site.lat === lat && site.lng === lng)) {
+    if (monitoringSites.some(site => !site.worldPin && site.lat === lat && site.lng === lng)) {
       marker?.remove();
       return;
     }
@@ -426,7 +428,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   }
   // 수정된 부분: zoom changes only UI overlays; the underlying map stays mounted.
   function syncZoomMode() {
-    if (updatingMapFrame || !map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
+    if (onSelection || updatingMapFrame || !map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
     if (map.getZoom() >= DETAIL_ZOOM && mode !== "map") {
       comparisonRequestId++;
       mode = "map";
@@ -443,7 +445,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       mode = "globe";
       setHomePresentation(true);
       syncMapFrame();
-      mapScene.hidden = true;
+      if (mapScene) mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
       refreshRasterLayers(false);
       resumeAfterInteraction = true;
@@ -482,7 +484,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     globeScene.hidden = false;
     globeScene.classList.remove("is-comparing", "is-detail");
     compareScene.hidden = true;
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     refreshRasterLayers(false);
     homeMotionPending = !reducedMotion.matches;
     moveSceneCamera({ ...START, zoom: homeZoom() });
@@ -493,7 +495,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     cameraDestination = PHOTO_ZOOM;
     const { lat, lng } = currentTarget;
     globeScene.classList.remove("is-detail");
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     const reuse = lastComparedPoint && Math.abs(lastComparedPoint.lat - lat) < 0.000001 &&
       Math.abs(lastComparedPoint.lng - lng) < 0.000001 && comparisonPairs.length;
     if (reuse) {
@@ -506,6 +508,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     refreshRasterLayers(false);
   }
   function openMap(lat, lng) {
+    if (onSelection) return;
     motionInterrupted = true;
     stopGlobeMotion();
     onSelection?.(null);
@@ -644,16 +647,16 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     globeScene.classList.add("is-comparing");
     moveSceneCamera({ center: [lng, lat], zoom: PHOTO_ZOOM });
     refreshRasterLayers(false);
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     compareScene.hidden = false;
-    $("compareRegion").textContent = currentTarget.name;
-    $("compareCoordinates").textContent = coordLabel(lat, lng);
-    $("sarCompareGrid").hidden = true;
-    $("pairChooser").hidden = true;
     if (onSelection) {
       onSelection({ lat, lng });
       return;
     }
+    $("compareRegion").textContent = currentTarget.name;
+    $("compareCoordinates").textContent = coordLabel(lat, lng);
+    $("sarCompareGrid").hidden = true;
+    $("pairChooser").hidden = true;
     updateComparisonStatus(
       "Searching NASA ASF catalog for matched NISAR GCOV acquisitions…"
     );
@@ -720,8 +723,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     map.setLayoutProperty("streets", "visibility", activeBasemap === "streets" ? "visible" : "none");
     if (map.getLayer("satellite")) map.setLayoutProperty("satellite", "visibility", activeBasemap === "streets" ? "none" : "visible");
     if (map.getLayer("earth")) map.setLayoutProperty("earth", "visibility", activeBasemap === "streets" ? "none" : "visible");
-    $("streetLayer").classList.toggle("is-selected", activeBasemap === "streets");
-    $("satelliteLayer").classList.toggle("is-selected", activeBasemap === "satellite");
+    $("streetLayer")?.classList.toggle("is-selected", activeBasemap === "streets");
+    $("satelliteLayer")?.classList.toggle("is-selected", activeBasemap === "satellite");
   }
   // 수정된 부분: optional prepared SAR images use MapLibre image sources.
   async function tryLoadSarLayers() {
@@ -831,16 +834,21 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     initGlobe();
     // No API keys, SAR claims or mock detection results are embedded in the demo.
     // Prepared overlays attach to the shared map after its style loads.
-    tryLoadSarLayers();
+    if (!onSelection) tryLoadSarLayers();
   }
   function selectCoordinates(lat, lng) {
     if (disposed || !map || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
     if (mode === "map") openMap(lat, lng);
-    else { setBasemap("satellite"); flyTo(lat, lng); }
+    else {
+      const shortcut = monitoringSites.find(site => site.worldPin?.lat === lat && site.worldPin?.lng === lng);
+      setBasemap("satellite");
+      flyTo(shortcut?.lat ?? lat, shortcut?.lng ?? lng);
+    }
     return true;
   }
   return {
     start,
+    goHome,
     selectCoordinates,
     isReady: () => !!map && !disposed,
     destroy() {

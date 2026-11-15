@@ -3,7 +3,6 @@ import { monitoringSites } from './lib/monitoringSites.js';
 import { createExplorer } from '../app.js';
 import { Topbar } from './components/Topbar.jsx';
 import { GlobeScene } from './components/GlobeScene.jsx';
-import { LocalMap } from './components/LocalMap.jsx';
 import { Footer } from './components/Footer.jsx';
 import { AboutDialog } from './components/AboutDialog.jsx';
 
@@ -41,7 +40,7 @@ export function App() {
   return <>
     <div className="site-frame">
       <Topbar />
-      <main className="main-content"><GlobeScene selectedPoint={selectedPoint} mapReady={mapReady} onSelectCoordinates={selectCoordinates} /><LocalMap /></main>
+      <main className="main-content"><GlobeScene selectedPoint={selectedPoint} mapReady={mapReady} onSelectCoordinates={selectCoordinates} onCloseObservation={() => explorerRef.current?.goHome()} /></main>
       <Footer />
     </div>
     <AboutDialog />

@@ -14,7 +14,7 @@ export const monitoringSites = [
   },
   {
     id: 'nisar-assam-hh-20260710-20260722-001', slug: 'assam',
-    title: 'Upper Assam', lat: 26.98, lng: 94.63, level: 2, candidateShare: 20.38,
+    title: 'Upper Assam', lat: 26.98, lng: 94.63, level: 3, candidateShare: 20.38,
     bounds: [94.580, 26.935, 94.680, 27.025],
     ...dates('2026-07-10', '2026-07-22'),
   },
@@ -25,7 +25,7 @@ export const monitoringSites = [
     ...dates('2026-01-05', '2026-01-17'),
   },
   ...scenarios,
-];
+].map(site => site.level === 3 && !(site.candidateShare > 0) ? { ...site, level: 1 } : site);
 
 export function monitoringSiteAt({ lat, lng }) {
   return monitoringSites.find(({ bounds: [west, south, east, north] }) =>
