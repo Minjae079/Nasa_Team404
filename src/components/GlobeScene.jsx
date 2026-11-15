@@ -38,7 +38,7 @@ export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSele
           <div className="control-separator"></div>
           <button id="resetGlobe" title="Reset globe" aria-label="Reset globe">⟲</button>
         </div>
-        <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> CLICK TO EXPLORE</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · TAP</span></div>
+        <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> DOUBLE-CLICK TO EXPLORE</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · DOUBLE-TAP</span></div>
         <div id="mapLoadStatus" className="map-load-status" role="status" hidden></div>
         <div className="globe-bottom-right"><span className="square-marker"></span> 3D WORLD VIEW <span className="guide-split">·</span> EXPERIMENTAL</div>
       <ComparisonScene point={selectedPoint} /></section>);

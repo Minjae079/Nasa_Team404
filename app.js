@@ -82,7 +82,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     try {
       map = new maplibregl.Map({
         container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? homeZoom() : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
-        attributionControl: { compact: true },
+        attributionControl: { compact: true }, doubleClickZoom: false,
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
@@ -148,7 +148,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
           startGlobeRotation();
         }
       });
-      map.on("click", event => {
+      map.on("dblclick", event => {
         const { lat, lng } = event.lngLat;
         if (mode === "map") {
           currentTarget = { lat, lng, name: isNearIIT(lat, lng) ? IIT.name : "Selected location" };

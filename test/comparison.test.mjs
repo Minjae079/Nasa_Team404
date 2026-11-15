@@ -196,7 +196,8 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
   map.events.dragstart?.();
   map.events.moveend();
   assert.equal(node('selectedCoords').textContent, selectedCoords);
-  map.events.click({ lngLat: { lng: -99, lat: 36 } });
+  assert.equal(map.events.click, undefined, 'Single clicks must not select a location');
+  map.events.dblclick({ lngLat: { lng: -99, lat: 36 } });
   const clickedCoords = node('selectedCoords').textContent;
   assert.notEqual(clickedCoords, selectedCoords);
   map.events.movestart({ originalEvent: {} });
@@ -267,7 +268,7 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
   assert.equal(map.zoom, 2);
   map.events.mousedown();
   assert.equal(frames.size, 0);
-  map.events.click({lngLat:{lat:35,lng:130}});
+  map.events.dblclick({lngLat:{lat:35,lng:130}});
   assert.equal(pins.length, 1);
   assert.deepEqual(Array.from(pins[0].coords), [130,35]);
   controller.goHome();
