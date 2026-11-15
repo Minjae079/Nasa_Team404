@@ -15,12 +15,13 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   };
   const frames = new Map();
   const timers = new Map();
+  const timerDelays = new Map();
   const windowEvents = {};
   let frameId = 0;
   let timerId = 0;
   const context = vm.createContext({
     fetch, console, encodeURIComponent, URL, maplibregl, options,
-    setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
+    setTimeout: (callback, delay) => { timers.set(++timerId, callback); timerDelays.set(timerId, delay); return timerId; },
     clearTimeout: id => timers.delete(id),
     window: { innerWidth: options.viewportWidth ?? 1280, innerHeight: 840, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
       cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener(name, handler) { windowEvents[name] = handler; } },
@@ -38,7 +39,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
       leave: () => { comparisonRequestId++; mode = 'map'; },
     };
     function start() {`), context);
-  return { controller: context.controller, node, frames, timers, windowEvents };
+  return { controller: context.controller, node, frames, timers, timerDelays, windowEvents };
 }
 
 const pair = {
@@ -315,6 +316,7 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   interrupted.windowEvents.touchend({ touches: [{}] });
   assert.equal(interrupted.timers.size, 0);
   interrupted.windowEvents.touchend({ touches: [] });
+  assert.equal(interrupted.timerDelays.get([...interrupted.timers.keys()][0]),450);
   interruptedMap.isMoving = () => true;
   function completeDelay() {
     const [id, callback] = interrupted.timers.entries().next().value;
@@ -325,6 +327,12 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   assert.equal(interrupted.frames.size, 0);
   interruptedMap.isMoving = () => false;
   interruptedMap.events.moveend();
+  completeDelay();
+  assert.equal(interrupted.frames.size, 1);
+  interruptedMap.events.wheel();
+  interruptedMap.events.zoom();
+  interruptedMap.events.moveend();
+  assert.equal(interrupted.timerDelays.get([...interrupted.timers.keys()][0]),100);
   completeDelay();
   assert.equal(interrupted.frames.size, 1);
 });
@@ -467,9 +475,11 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   const map = controller.state().map;
   assert.ok(map.getZoom() < 0);
   assert.equal(pins.length, 0);
-  const areas = map.options.style.sources['high-risk-areas'].data.features;
-  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'Polygon']);
-  const ring = areas[0].geometry.coordinates;
+  const areas = map.options.style.sources['monitoring-areas'].data.features;
+  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'LineString', 'Polygon']);
+  assert.equal(areas[0].properties.level, 0);
+  assert.equal(areas[1].properties.level, 3);
+  const ring = areas[1].geometry.coordinates;
   assert.equal(ring.length, 65);
   assert.deepEqual(ring[0], ring.at(-1));
   const radians = Math.PI / 180;
@@ -478,7 +488,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
       + Math.cos(high.lat * radians) * Math.cos(lat * radians) * Math.cos((lng - high.lng) * radians));
     assert.ok(Math.abs(distance / radians - 1.8) < 1e-8);
   }
-  const halo = map.options.style.layers.find(layer => layer.id === 'high-risk-location-halo');
+  const halo = map.options.style.layers.find(layer => layer.id === 'monitoring-location-ring');
   assert.equal(halo.type, 'line');
   map.events.load();
   assert.equal(frames.size, 1);
@@ -493,9 +503,11 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   tick(2800);
   assert.equal(pins.length, 2);
   assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
-  assert.equal(map.paint['high-risk-location-haloline-opacity'].at(-1), 0);
+  assert.equal(map.paint['monitoring-location-ringline-opacity'].at(-1), 0);
   assert.deepEqual(Array.from(pins[0].coords), [site.worldPin.lng, site.worldPin.lat]);
   assert.equal(pins[0].options.element.dataset.level, '0');
+  assert.ok(!pins[0].options.element.innerHTML.includes('monitoring-pin-warning'));
+  assert.ok(pins[1].options.element.innerHTML.includes('monitoring-pin-warning'));
   assert.equal(pins[0].options.anchor, 'bottom');
   assert.equal(pins[0].options.subpixelPositioning, true);
   const clicks = pins[0].options.element.events;

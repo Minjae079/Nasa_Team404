@@ -8,7 +8,7 @@ const dates = (before, after) => ({
 export const monitoringSites = [
   {
     id: 'nisar-sacdelta-hh-20261015-20261027-001', slug: 'sacramento',
-    title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1,
+    title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 2,
     bounds: [-121.856, 37.795, -121.391, 38.205],
     ...dates('2026-10-15', '2026-10-27'),
   },
@@ -25,7 +25,11 @@ export const monitoringSites = [
     ...dates('2026-01-05', '2026-01-17'),
   },
   ...scenarios,
-].map(site => site.level === 3 && !(site.candidateShare > 0) ? { ...site, level: 1 } : site);
+].map(site => (
+  (site.level === 3 && !(site.candidateShare > 0)) || (site.level === 2 && site.candidateShare === 0)
+    ? { ...site, level: 1 }
+    : site
+));
 
 export function monitoringSiteAt({ lat, lng }) {
   return monitoringSites.find(({ bounds: [west, south, east, north] }) =>

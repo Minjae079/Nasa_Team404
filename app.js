@@ -74,9 +74,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   let globeGestureActive = false;
   let resumeAfterInteraction = false;
   let rotationResumeTimer;
+  let rotationResumesAfterZoom = false;
   function stopGlobeMotion() {
     clearTimeout(rotationResumeTimer);
     resumeAfterInteraction = false;
+    rotationResumesAfterZoom = false;
     homeMotionPending = false;
     introActive = false;
     if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
@@ -89,14 +91,15 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationResumeTimer = setTimeout(() => {
       if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
       resumeAfterInteraction = false;
-      startGlobeRotation();
-    }, 450);
+      startGlobeRotation({ rampMs: rotationResumesAfterZoom ? 220 : 400 });
+      rotationResumesAfterZoom = false;
+    }, rotationResumesAfterZoom ? 100 : 450);
   }
-  function startGlobeRotation({ intro = false } = {}) {
+  function startGlobeRotation({ intro = false, rampMs = 400 } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
     introActive = intro;
     let introElapsed = 0;
-    let rotationElapsed = intro ? 400 : 0;
+    let rotationElapsed = intro ? rampMs : 0;
     function rotate(time) {
       rotationFrame = null;
       if (disposed || reducedMotion.matches || mode !== "globe") return;
@@ -128,7 +131,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else {
           const { lng, lat } = map.getCenter();
           rotationElapsed += elapsed;
-          const speed = ROTATION_RATE * Math.min(rotationElapsed / 400, 1);
+          const speed = ROTATION_RATE * Math.min(rotationElapsed / rampMs, 1);
           camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
@@ -139,11 +142,12 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationFrame = window.requestAnimationFrame(rotate);
   }
 
-  const highRiskAreas = {
+  const monitoringAreas = {
     type: 'FeatureCollection',
-    features: monitoringSites.filter(site => site.level === 3 && !site.worldPin).flatMap(site => {
-      const locator = { type: 'Feature', properties: {}, geometry: globeLocatorRing(site) };
-      if (!site.bounds) return [locator];
+    features: monitoringSites.flatMap(site => {
+      const level = site.worldPin ? 0 : site.level ?? 0;
+      const locator = { type: 'Feature', properties: { level }, geometry: globeLocatorRing(site.worldPin ?? site) };
+      if (level !== 3 || !site.bounds) return [locator];
       const [west, south, east, north] = site.bounds;
       return [locator, {
         type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
@@ -163,7 +167,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
-            "high-risk-areas": { type: "geojson", data: highRiskAreas, tolerance: 0.15 },
+            "monitoring-areas": { type: "geojson", data: monitoringAreas, tolerance: 0.15 },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -185,16 +189,18 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
             } },
             { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
             {
-              id: "high-risk-observation-outline", type: "line", source: "high-risk-areas",
+              id: "high-risk-observation-outline", type: "line", source: "monitoring-areas",
               filter: ["==", ["geometry-type"], "Polygon"],
               paint: { "line-color": "#ff5657", "line-width": 2.5,
                 "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
             {
-              id: "high-risk-location-halo", type: "line", source: "high-risk-areas",
+              id: "monitoring-location-ring", type: "line", source: "monitoring-areas",
               filter: ["==", ["geometry-type"], "LineString"],
               layout: { "line-join": "round" },
-              paint: { "line-color": "#ff5657", "line-width": 2.5,
+              paint: {
+                "line-color": ["match", ["get", "level"], 1, "#37dc74", 2, "#ff9d32", 3, "#ff4944", "#f3f6fb"],
+                "line-width": ["match", ["get", "level"], 3, 2.5, 1.75],
                 "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
           ],
@@ -213,13 +219,17 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       }
       map.on("move", syncSkyCamera);
       syncSkyCamera();
-      map.on("zoom", syncZoomMode);
+      map.on("zoom", () => {
+        syncZoomMode();
+        if (resumeAfterInteraction) rotationResumesAfterZoom = true;
+      });
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
         map.on(eventName, () => {
           motionInterrupted = true;
           const interruptIntro = homeMotionPending || introActive;
           stopGlobeMotion();
           globeGestureActive ||= eventName !== "wheel";
+          rotationResumesAfterZoom = eventName === "wheel";
           resumeAfterInteraction = mode === "globe";
           if (interruptIntro) map.stop();
           queueGlobeRotation();
@@ -266,6 +276,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           motionInterrupted = true;
           stopGlobeMotion();
           resumeAfterInteraction = mode === "globe";
+          rotationResumesAfterZoom = true;
           moveSceneCamera({ center: [lng, lat], zoom });
         }
       });
@@ -297,9 +308,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   function revealMonitoring() {
     if (disposed || !map || !mapLoaded || monitoringVisible) return;
     monitoringVisible = true;
-    if (highRiskAreas.features.length) {
+    if (monitoringAreas.features.length) {
       map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
-      map.setPaintProperty("high-risk-location-halo", "line-opacity",
+      map.setPaintProperty("monitoring-location-ring", "line-opacity",
         ["interpolate", ["linear"], ["zoom"], 3, 1, 4.5, 0]);
     }
     for (const site of monitoringSites) {
@@ -457,6 +468,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     stopGlobeMotion();
     cameraDestination = null;
     resumeAfterInteraction = mode === "globe";
+    rotationResumesAfterZoom = true;
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
     queueGlobeRotation();
   }
