@@ -20,7 +20,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
     window: { innerWidth: options.viewportWidth ?? 1280, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
       cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
-      createElement: () => ({}) },
+      createElement: options.createElement ?? (() => ({})) },
   });
   // Expose the real controller without booting WebGL or CDN assets.
   const source = readFileSync(new URL('../app.js', import.meta.url), 'utf8').replace('export function', 'function') + '\ncreateExplorer(maplibregl, options);';
@@ -386,4 +386,52 @@ test('typed coordinates reuse geographic selection and the marker; invalid value
   assert.equal(controller.selectCoordinates(41.83531,-87.627),true);
   assert.deepEqual(Array.from(pin.coords),[-87.627,41.83531]);
   assert.equal(controller.state().mode,'map');
+});
+
+
+test('a visible monitoring pin opens the comparison from the initial globe zoom', () => {
+  const clicks = {};
+  const selections = [];
+  let stopped = false;
+  let pin;
+  class Map {
+    constructor(options) { this.events = {}; this.zoom = options.zoom; }
+    getCanvas() { return { setAttribute() {} }; }
+    on(name, callback) { this.events[name] = callback; }
+    getZoom() { return this.zoom; }
+    getCenter() { return { lng: -86, lat: 34 }; }
+    getBearing() { return 0; }
+    getPitch() { return 0; }
+    getLayer() { return false; }
+    stop() { stopped = true; }
+    easeTo(options) { this.flight = options; }
+  }
+  class Marker {
+    constructor() { pin = this; }
+    setLngLat(point) { this.coords = point; return this; }
+    addTo() { return this; }
+    remove() {}
+  }
+  const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1 };
+  const { controller, frames } = frontend(async () => ({ok:false}), {Map, Marker}, false, {
+    monitoringSites: [site],
+    onSelection: point => selections.push([point.lat, point.lng]),
+    createElement: () => ({
+      dataset: {}, classList: { contains: () => false }, setAttribute() {},
+      addEventListener: (name, handler) => { clicks[name] = handler; },
+    }),
+  });
+  controller.initGlobe();
+  const map = controller.state().map;
+  assert.ok(map.getZoom() < 0);
+  assert.deepEqual(Array.from(pin.coords), [site.lng, site.lat]);
+  map.events.load();
+  assert.equal(frames.size, 1);
+  clicks.pointerdown({ isPrimary: true, button: 0, stopPropagation() {} });
+  assert.equal(stopped, true);
+  assert.equal(frames.size, 0);
+  clicks.click({ stopPropagation() {} });
+  assert.deepEqual(selections, [[site.lat, site.lng]]);
+  assert.equal(controller.state().mode, 'compare');
+  assert.deepEqual(Array.from(map.flight.center), [site.lng, site.lat]);
 });

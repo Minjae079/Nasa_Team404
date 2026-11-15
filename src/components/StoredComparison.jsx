@@ -108,45 +108,45 @@ export function StoredComparison({ point, onClose }) {
         })}
       </div>
     </>}
-    {!result && <aside className="sar-swipe-dialog sar-floating-placeholder" aria-label="Observation availability" onKeyDown={event => {
-      if (event.key === 'Escape') { event.stopPropagation(); onClose?.(); }
-    }}>
-      <header className="sar-floating-placeholder-header">
-        <span className="sar-console-kicker">NISAR / OBSERVATION</span>
-        <button type="button" className="sar-swipe-close" aria-label="Close analysis" onClick={onClose}>✕</button>
-      </header>
-      <h2>Selected region</h2>
-      <p className="sar-floating-coordinates">{point.lat.toFixed(4)}°, {point.lng.toFixed(4)}°</p>
-      <div className="sar-floating-availability" role="status" aria-live="polite" data-kind={state.kind}>
-        {messages[state.kind] || messages.error}
-      </div>
-      {state.kind !== 'loading' && <button type="button" className="sar-retry" onClick={() => refresh()}>Refresh availability</button>}
-    </aside>}
-    {floating && (
+    {(!result || floating) && (
       <aside
-        className="sar-swipe-dialog"
-        aria-labelledby="sar-swipe-title"
+        className={`sar-swipe-dialog${!result ? ' sar-floating-placeholder' : ''}`}
+        aria-label={!result ? 'Observation availability' : undefined}
+        aria-labelledby={result ? 'sar-swipe-title' : undefined}
         onKeyDown={event => {
           if (event.key === 'Escape') { event.stopPropagation(); onClose?.(); }
         }}
       >
-        <SarSwipeComparison
-          sceneId={result.id}
-          key={`${result.id}:${revision}:${result.images.before}`}
-          title={matchedSite?.title ?? 'Sacramento Delta'}
-          point={point}
-          serviceState={usePackaged ? 'ready' : state.kind}
-          onRefresh={() => refresh()}
-          beforeUrl={result.images.before}
-          afterUrl={result.images.after}
-          changeUrl={result.images.change_overlay}
-          aiUrl={matchedSite ? monitoringAssets(matchedSite).ai : null}
-          monitoringSite={matchedSite}
-          beforeDate={result.before.observed_at.slice(0, 10)}
-          afterDate={result.after.observed_at.slice(0, 10)}
-          onImageFailure={() => refresh(true)}
-          onClose={onClose}
-        />
+        {!result ? <>
+          <header className="sar-floating-placeholder-header">
+            <span className="sar-console-kicker">NISAR / OBSERVATION</span>
+            <button type="button" className="sar-swipe-close" aria-label="Close analysis" onClick={onClose}>✕</button>
+          </header>
+          <h2>{site?.title ?? 'Selected region'}</h2>
+          <p className="sar-floating-coordinates">{point.lat.toFixed(4)}°, {point.lng.toFixed(4)}°</p>
+          <div className="sar-floating-availability" role="status" aria-live="polite" data-kind={state.kind}>
+            {messages[state.kind] || messages.error}
+          </div>
+          {state.kind !== 'loading' && <button type="button" className="sar-retry" onClick={() => refresh()}>Refresh availability</button>}
+        </> : (
+          <SarSwipeComparison
+            sceneId={result.id}
+            key={`${result.id}:${revision}:${result.images.before}`}
+            title={matchedSite?.title ?? 'Sacramento Delta'}
+            point={point}
+            serviceState={usePackaged ? 'ready' : state.kind}
+            onRefresh={() => refresh()}
+            beforeUrl={result.images.before}
+            afterUrl={result.images.after}
+            changeUrl={result.images.change_overlay}
+            aiUrl={matchedSite ? monitoringAssets(matchedSite).ai : null}
+            monitoringSite={matchedSite}
+            beforeDate={result.before.observed_at.slice(0, 10)}
+            afterDate={result.after.observed_at.slice(0, 10)}
+            onImageFailure={() => refresh(true)}
+            onClose={onClose}
+          />
+        )}
       </aside>
     )}
     <dialog ref={dialog} className="observation-dialog" onClose={() => setPreview(null)} aria-labelledby="stored-preview-title">

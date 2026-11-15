@@ -113,7 +113,7 @@ export function SarSwipeComparison({
       <section className="sar-console-imagery" aria-label="Satellite imagery">
         <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
-            <button type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
+            <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>SAR CHANGE</button>
             {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => { setAiFailed(false); setMode('ai'); }}>AI SIGNAL</button>}
           </div>

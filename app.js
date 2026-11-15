@@ -159,7 +159,6 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else flyTo(lat, lng);
       });
       map.on("load", () => {
-        addMonitoringPins();
         applyBasemap();
         installRasterLayers();
         if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
@@ -172,6 +171,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         $("mapLoadStatus").textContent = "Some map tiles could not load. Check your connection and try zooming again.";
       });
       map.on("idle", () => { $("mapLoadStatus").hidden = true; });
+      addMonitoringPins();
       listen(window, "resize", resizeGlobe);
     } catch (error) {
       console.error("Unable to create Earth map", error);
@@ -186,6 +186,15 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       element.className = 'monitoring-site-pin';
       element.setAttribute('aria-label', `Open NISAR observations for ${site.title}`);
       element.dataset.level = String(site.level ?? 0);
+      listen(element, 'pointerdown', event => {
+        event.stopPropagation();
+        if (!event.isPrimary || event.button !== 0) return;
+        // Keep the marker under the pointer until the native click is dispatched.
+        const interruptIntro = homeMotionPending || introActive;
+        motionInterrupted = true;
+        stopGlobeMotion();
+        if (interruptIntro) map.stop();
+      });
       listen(element, 'click', event => {
         event.stopPropagation();
         if (element.classList.contains('maplibregl-marker-covered')) return;
