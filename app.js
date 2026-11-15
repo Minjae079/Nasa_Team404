@@ -366,7 +366,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       element.className = 'monitoring-site-pin';
       const location = markerLocation(site);
       const level = site.worldPin ? 0 : site.level ?? 0;
-      const label = site.worldPin ? 'Observation shortcut' : level === 3 ? 'High screening level' : 'NISAR observation';
+      const label = site.worldPin ? 'Observation shortcut' : level === 3 ? 'High flood signal' : 'NISAR observation';
       element.setAttribute('aria-label', `${label}. Open NISAR observations for ${site.title}`);
       element.dataset.level = String(level);
       element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
@@ -386,7 +386,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         event.stopPropagation();
         if (element.classList.contains('maplibregl-marker-covered')) return;
         setBasemap('satellite');
-        flyTo(site.lat, site.lng);
+        flyTo(site.lat, site.lng, site);
       });
       listen(element, 'dblclick', event => event.stopPropagation());
       const pin = new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
@@ -521,13 +521,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
     queueGlobeRotation();
   }
-  function flyTo(lat, lng) {
+  function flyTo(lat, lng, site) {
     motionInterrupted = true;
     stopGlobeMotion();
     cameraDestination = PHOTO_ZOOM;
     selectedLocation = true;
     // 수정된 부분: search starts immediately, independently of camera animation.
-    openComparison(lat, lng);
+    openComparison(lat, lng, site);
   }
   function goHome() {
     // Home always shows the natural Earth imagery, regardless of local-map choice.
@@ -685,7 +685,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   }
 
   // 수정된 부분: clear stale results before searching and save the location only on success.
-  async function openComparison(lat, lng) {
+  async function openComparison(lat, lng, site) {
     lastComparedPoint = null;
     comparisonPairs = [];
     const requestId = ++comparisonRequestId;
@@ -702,16 +702,18 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         : "Selected Earth region",
     };
     // Create a pin only after an explicit location selection.
-    showSelectionMarker(lat, lng);
+    if (site) marker?.remove();
+    else showSelectionMarker(lat, lng);
     globeScene.hidden = false;
     globeScene.classList.remove("is-detail");
     globeScene.classList.add("is-comparing");
-    moveSceneCamera({ center: [lng, lat], zoom: PHOTO_ZOOM });
+    const cameraPoint = site?.worldPin ?? { lat, lng };
+    moveSceneCamera({ center: [cameraPoint.lng, cameraPoint.lat], zoom: PHOTO_ZOOM });
     refreshRasterLayers(false);
     if (mapScene) mapScene.hidden = true;
     compareScene.hidden = false;
     if (onSelection) {
-      onSelection({ lat, lng });
+      onSelection(site ? { lat, lng, siteId: site.id } : { lat, lng });
       return;
     }
     $("compareRegion").textContent = currentTarget.name;
@@ -903,7 +905,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     else {
       const shortcut = monitoringSites.find(site => site.worldPin?.lat === lat && site.worldPin?.lng === lng);
       setBasemap("satellite");
-      flyTo(shortcut?.lat ?? lat, shortcut?.lng ?? lng);
+      flyTo(shortcut?.lat ?? lat, shortcut?.lng ?? lng, shortcut);
     }
     return true;
   }

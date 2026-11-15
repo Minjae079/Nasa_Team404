@@ -12,21 +12,21 @@ export function AboutDialog() {
         <dl className="guide-modes">
           <div><dt>SWIPE</dt><dd>Drag the divider to compare the two NISAR images.</dd></div>
           <div><dt>Radar change</dt><dd>Look for places where the radar return changed.</dd></div>
-          <div><dt>Flood candidates</dt><dd>Blue shows where the model picked up signs of possible flooding.</dd></div>
+          <div><dt>Possible flooding</dt><dd>Blue shows where the model found signs of flooding.</dd></div>
         </dl>
 
-        <p className="guide-context">Hover over the panel icons for the screening level, 7-day rainfall, past water occurrence, and relative elevation. Some of these readings are illustrative.</p>
+        <p className="guide-context">Hover over the icons to see the flood signal, 7-day rainfall, how often water was observed, and elevation vs. nearby terrain. Some of these readings are illustrative.</p>
         <ul className="guide-legend" aria-label="Globe marker colors">
           <li data-level="0">Shortcut</li>
-          <li data-level="1">Low screening</li>
-          <li data-level="2">Caution</li>
-          <li data-level="3">Experimental warning</li>
+          <li data-level="1">Low flood signal</li>
+          <li data-level="2">Moderate flood signal</li>
+          <li data-level="3">High flood signal</li>
         </ul>
         <p className="guide-context">White pins open observations elsewhere. The panel shows where the images were taken.</p>
 
         <section className="guide-model">
           <h3>Where the blue comes from</h3>
-          <p>We trained a Temporal U-Net on labeled Sentinel-1 radar pairs from GEOID-Flood. It learns to separate floodwater, permanent water, and background. Here it runs on NISAR pairs, so treat blue areas as candidates for review.</p>
+          <p>We trained a Temporal U-Net on labeled Sentinel-1 radar pairs from GEOID-Flood to distinguish floodwater, permanent water, and background. The blue areas show results we generated from NISAR image pairs for review.</p>
         </section>
 
         <footer className="guide-footer">

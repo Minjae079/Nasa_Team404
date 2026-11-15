@@ -544,8 +544,8 @@
 
 .sar-floating-insight-popover { width: max-content; font-size: 12px; line-height: 1.3; }
 
-.sar-floating-insight-popover .sar-rainfall-tooltip { display: grid; gap: 3px; }
-.sar-floating-insight-popover .sar-rainfall-value {
+.sar-floating-insight-popover .sar-context-tooltip { display: grid; gap: 3px; }
+.sar-floating-insight-popover .sar-insight-value {
   color: #f1f6f7;
   font-size: 13px;
   font-weight: 650;

@@ -31,7 +31,8 @@ export const monitoringSites = [
     : site
 ));
 
-export function monitoringSiteAt({ lat, lng }) {
+export function monitoringSiteAt({ lat, lng, siteId }) {
+  if (siteId) return monitoringSites.find(site => site.id === siteId);
   return monitoringSites.find(({ bounds: [west, south, east, north] }) =>
     lat >= south && lat <= north && lng >= west && lng <= east);
 }

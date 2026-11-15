@@ -4,20 +4,20 @@ import { createPortal } from 'react-dom';
 import { fetchJson } from '../lib/api.js';
 
 // Regional observations shown in the analysis panel.
-const pendingContext = [
+const insightItems = [
   {
     key: 'rainfall',
-    label: 'Rainfall in the last 7 days',
+    label: '7-day rainfall',
     description: 'Satellite-estimated precipitation'
   },
   {
     key: 'waterHistory',
-    label: 'Historical water occurrence',
+    label: 'How often water was observed',
     description: 'Historical surface water occurrence'
   },
   {
     key: 'relativeElevation',
-    label: 'Relative elevation',
+    label: 'Elevation vs. nearby terrain',
     description: 'Elevation relative to nearby terrain'
   },
 ];
@@ -58,7 +58,7 @@ export function ObservationContext({
       <section className="sar-regional-context">
         <h3>Regional context</h3>
 
-        {pendingContext.map(field => (
+        {insightItems.map(field => (
           <article className="sar-context-card" key={field.key}>
             <h4>{field.label}</h4>
             <p>{field.description}</p>
@@ -80,22 +80,6 @@ export function ObservationContext({
     </aside>
   );
 }
-
-// Supported environmental indicators.
-const insightItems = [
-  {
-    key: 'rainfall',
-    label: 'Rainfall in the last 7 days',
-  },
-  {
-    key: 'waterHistory',
-    label: 'Historical water occurrence',
-  },
-  {
-    key: 'relativeElevation',
-    label: 'Relative elevation',
-  },
-];
 
 const EXPECTED_UNITS = {
   rainfall: 'mm',
@@ -194,6 +178,7 @@ function InsightSymbol({ kind }) {
 // Show descriptions only while the pointer is over an icon.
 export function InsightTrigger({
   text,
+  multiline = false,
   ariaLabel,
   className = '',
   level,
@@ -206,7 +191,6 @@ export function InsightTrigger({
   const [position, setPosition] = useState(null);
 
   const visible = hovered;
-  const multiline = typeof text !== 'string';
 
   useEffect(() => {
     if (!visible) return;
@@ -384,12 +368,13 @@ export function ObservationInsights({ sceneId, scenarioMetrics }) {
             key={item.key}
           >
             <InsightTrigger
-              text={item.key === 'rainfall' ? (
-                <span className="sar-rainfall-tooltip">
+              multiline
+              text={
+                <span className="sar-context-tooltip">
                   <span>{item.label}</span>
-                  <span className="sar-rainfall-value">{summary}</span>
+                  <span className="sar-insight-value">{summary}</span>
                 </span>
-              ) : text}
+              }
               ariaLabel={text}
               level={value !== null ? indicatorLevel(item.key, metric.value) : 0}
             >

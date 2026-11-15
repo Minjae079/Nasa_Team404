@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
+import { monitoringAssets, monitoringSiteAt, monitoringSites } from '../src/lib/monitoringSites.js';
 
 function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   const nodes = new Map();
@@ -481,12 +482,14 @@ test('monitoring pins appear after the intro and open the comparison with one cl
     addTo() { return this; }
     remove() {}
   }
-  const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1, worldPin: { lat: -31, lng: 145 } };
+  const shortcuts = monitoringSites.filter(site => site.worldPin);
+  assert.equal(shortcuts.length, 5);
+  const [site, ...otherShortcuts] = shortcuts;
   const high = { title: 'Chókwè', lat: -24.52, lng: 33.025, level: 3, bounds: [32.975, -24.566, 33.075, -24.474] };
   const nearby = { title: 'Madison', lat: 43, lng: -89, level: 1, overviewOffset: { lat: 2, lng: -2 } };
   const { controller, frames } = frontend(async () => ({ok:false}), {Map, Marker}, false, {
-    monitoringSites: [site, high, nearby],
-    onSelection: point => selections.push([point.lat, point.lng]),
+    monitoringSites: [site, high, nearby, ...otherShortcuts],
+    onSelection: point => selections.push({ ...point }),
     createElement: () => ({
       dataset: {}, classList: { contains: () => false }, setAttribute() {},
       events: {}, addEventListener(name, handler) { this.events[name] = handler; },
@@ -497,7 +500,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.ok(map.getZoom() < 0);
   assert.equal(pins.length, 0);
   const areas = map.options.style.sources['monitoring-areas'].data.features;
-  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'LineString', 'Polygon', 'LineString']);
+  assert.deepEqual(Array.from(areas.slice(0, 4), feature => feature.geometry.type), ['LineString', 'LineString', 'Polygon', 'LineString']);
   assert.equal(areas[0].properties.level, 0);
   assert.equal(areas[1].properties.level, 3);
   const ring = areas[1].geometry.coordinates;
@@ -522,7 +525,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.equal(pins.length, 0);
   assert.equal(map.paint, undefined);
   tick(2800);
-  assert.equal(pins.length, 3);
+  assert.equal(pins.length, 2 + shortcuts.length);
   assert.deepEqual(Array.from(pins[2].coords), [-91, 45]);
   map.zoom = 4;
   map.events.zoom();
@@ -546,10 +549,30 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.equal(stopped, false);
   assert.equal(frames.size, 0);
   clicks.click({ stopPropagation() {} });
-  assert.deepEqual(selections, [[site.lat, site.lng]]);
+  assert.deepEqual(selections, [{ lat: site.lat, lng: site.lng, siteId: site.id }]);
   assert.equal(controller.state().mode, 'compare');
-  assert.deepEqual(Array.from(map.flight.center), [site.lng, site.lat]);
+  assert.deepEqual(Array.from(map.flight.center), [site.worldPin.lng, site.worldPin.lat]);
   pins[2].options.element.events.click({ stopPropagation() {} });
-  assert.deepEqual(selections.at(-1), [nearby.lat, nearby.lng]);
+  assert.deepEqual(selections.at(-1), { lat: nearby.lat, lng: nearby.lng, siteId: nearby.id });
   assert.deepEqual(Array.from(map.flight.center), [nearby.lng, nearby.lat]);
+  const imagePairs = new Set();
+  for (const [index, shortcut] of shortcuts.entries()) {
+    const pin = pins[index === 0 ? 0 : index + 2];
+    pin.options.element.events.click({ stopPropagation() {} });
+    const selection = selections.at(-1);
+    assert.deepEqual(selection, { lat: shortcut.lat, lng: shortcut.lng, siteId: shortcut.id });
+    assert.deepEqual(Array.from(map.flight.center), [shortcut.worldPin.lng, shortcut.worldPin.lat]);
+    const observation = monitoringSiteAt(selection);
+    assert.equal(observation, shortcut);
+    const { before, after } = monitoringAssets(observation);
+    imagePairs.add(before + after);
+    assert.equal(controller.selectCoordinates(shortcut.worldPin.lat, shortcut.worldPin.lng), true);
+    assert.deepEqual(selections.at(-1), selection);
+  }
+  assert.equal(imagePairs.size, shortcuts.length);
+  assert.equal(pins.length, 2 + shortcuts.length);
+
+  const newOrleans = shortcuts.find(shortcut => shortcut.slug === 'new-orleans');
+  assert.equal(monitoringSiteAt(newOrleans), newOrleans);
+  assert.equal(monitoringSiteAt({ ...newOrleans, siteId: site.id }), site);
 });

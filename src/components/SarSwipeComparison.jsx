@@ -126,7 +126,7 @@ export function SarSwipeComparison({
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
-            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Flood candidates</button>}
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Possible flooding</button>}
           </div>
           <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
@@ -146,7 +146,7 @@ export function SarSwipeComparison({
             onPointerUp={pointerEnd}
             onPointerCancel={pointerEnd}
             onLostPointerCapture={() => { activePointer.current = null; }}
-            aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Experimental AI flood candidates' : 'SAR backscatter change'}
+            aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Possible flooding shown by the model' : 'SAR backscatter change'}
           >
             <img
               className="sar-swipe-image"
@@ -185,13 +185,13 @@ export function SarSwipeComparison({
               <div className="sar-ai-layer sar-imagery-layer" data-visible={mode === 'ai' && aiReady}
                 aria-hidden={mode !== 'ai' || !aiReady}>
                 <img key={aiAttempt} className="sar-swipe-image" src={aiUrl}
-                  alt="Blue experimental V1-long flood candidates over the later NISAR observation"
+                  alt="Possible flooding shown in blue over the later NISAR observation"
                   draggable={false} onLoad={event => handleLoad('ai', event)}
                   onError={() => setAiFailed(true)} />
               </div>
             )}
             {mode === 'ai' && !aiReady && <div className="sar-swipe-notice" role="status">
-              {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
+              {aiFailed ? 'Possible flooding layer unavailable.' : 'Loading possible flooding layer…'}
             </div>}
             {ready && mode === 'swipe' && (
               <div
