@@ -1,4 +1,22 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
+function globeLocatorRing({ lat, lng }) {
+  // Sample a circle at a constant angular distance along the Earth's surface.
+  const radians = Math.PI / 180;
+  const latitude = lat * radians;
+  const radius = 3.5 * radians;
+  const segments = 64;
+  const coordinates = Array.from({ length: segments }, (_, index) => {
+    const bearing = index * 2 * Math.PI / segments;
+    const ringLatitude = Math.asin(Math.sin(latitude) * Math.cos(radius)
+      + Math.cos(latitude) * Math.sin(radius) * Math.cos(bearing));
+    const longitudeOffset = Math.atan2(Math.sin(bearing) * Math.sin(radius) * Math.cos(latitude),
+      Math.cos(radius) - Math.sin(latitude) * Math.sin(ringLatitude));
+    return [lng + longitudeOffset / radians, ringLatitude / radians];
+  });
+  coordinates.push(coordinates[0]);
+  return { type: 'LineString', coordinates };
+}
+
 export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSites = [] } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
@@ -122,14 +140,15 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
 
   const highRiskAreas = {
     type: 'FeatureCollection',
-    features: monitoringSites.filter(site => site.level === 3 && site.bounds).flatMap(site => {
+    features: monitoringSites.filter(site => site.level === 3).flatMap(site => {
+      const locator = { type: 'Feature', properties: {}, geometry: globeLocatorRing(site) };
+      if (!site.bounds) return [locator];
       const [west, south, east, north] = site.bounds;
-      return [
-        { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [site.lng, site.lat] } },
-        { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+      return [locator, {
+        type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
           [west, south], [east, south], [east, north], [west, north], [west, south],
-        ]] } },
-      ];
+        ]] },
+      }];
     }),
   };
 
@@ -143,7 +162,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
-            "high-risk-areas": { type: "geojson", data: highRiskAreas },
+            "high-risk-areas": { type: "geojson", data: highRiskAreas, tolerance: 0.15 },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -171,12 +190,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
                 "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
             {
-              id: "high-risk-location-halo", type: "circle", source: "high-risk-areas",
-              filter: ["==", ["geometry-type"], "Point"], maxzoom: 7,
-              paint: { "circle-radius": 19, "circle-opacity": 0,
-                "circle-stroke-color": "#ff5657", "circle-stroke-width": 2,
-                "circle-stroke-opacity": 0,
-                "circle-stroke-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
+              id: "high-risk-location-halo", type: "line", source: "high-risk-areas",
+              filter: ["==", ["geometry-type"], "LineString"],
+              layout: { "line-join": "round" },
+              paint: { "line-color": "#ff5657", "line-width": 2.5,
+                "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
           ],
           sky: { "sky-color": "#050b16", "horizon-color": "#bddfff",
@@ -272,8 +290,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     monitoringVisible = true;
     if (highRiskAreas.features.length) {
       map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
-      map.setPaintProperty("high-risk-location-halo", "circle-stroke-opacity",
-        ["interpolate", ["linear"], ["zoom"], 4, 1, 7, 0]);
+      map.setPaintProperty("high-risk-location-halo", "line-opacity",
+        ["interpolate", ["linear"], ["zoom"], 3, 1, 4.5, 0]);
     }
     for (const site of monitoringSites) {
       const element = document.createElement('button');

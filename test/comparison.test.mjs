@@ -459,8 +459,18 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.ok(map.getZoom() < 0);
   assert.equal(pins.length, 0);
   const areas = map.options.style.sources['high-risk-areas'].data.features;
-  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['Point', 'Polygon']);
-  assert.deepEqual(Array.from(areas[0].geometry.coordinates), [high.lng, high.lat]);
+  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'Polygon']);
+  const ring = areas[0].geometry.coordinates;
+  assert.equal(ring.length, 65);
+  assert.deepEqual(ring[0], ring.at(-1));
+  const radians = Math.PI / 180;
+  for (const [lng, lat] of ring) {
+    const distance = Math.acos(Math.sin(high.lat * radians) * Math.sin(lat * radians)
+      + Math.cos(high.lat * radians) * Math.cos(lat * radians) * Math.cos((lng - high.lng) * radians));
+    assert.ok(Math.abs(distance / radians - 3.5) < 1e-8);
+  }
+  const halo = map.options.style.layers.find(layer => layer.id === 'high-risk-location-halo');
+  assert.equal(halo.type, 'line');
   map.events.load();
   assert.equal(frames.size, 1);
   function tick(time) {
@@ -474,6 +484,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   tick(2800);
   assert.equal(pins.length, 2);
   assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
+  assert.equal(map.paint['high-risk-location-haloline-opacity'].at(-1), 0);
   assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
   assert.equal(pins[0].options.anchor, 'bottom');
   assert.equal(pins[0].options.subpixelPositioning, true);
