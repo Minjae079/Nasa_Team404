@@ -422,10 +422,12 @@
 }
 
 /* Make analysis the focus once a location is selected. */
-.scene-globe { --observation-width: clamp(460px, 44vw, 710px); }
+.scene-globe { --observation-width: clamp(390px, 39vw, 580px); }
 .sar-swipe-dialog, .model-results-dialog { background: #0c1b25f5; border-color: #41616b; border-radius: 14px; }
 @media (min-width: 901px) {
   .scene-globe .sar-swipe-dialog { width: var(--observation-width); }
+  .scene-globe .sar-swipe-dialog .sar-console-imagery { padding-inline: 14px; }
+  .scene-globe .sar-swipe-dialog .sar-imagery-content { gap: 7px; }
   .scene-globe.is-comparing .coordinate-panel {
     left: calc(var(--observation-width) + 18px);
     width: min(330px, calc(100vw - var(--observation-width) - 120px));
@@ -503,15 +505,15 @@
   position: absolute;
   inset: auto 0 100%;
   color: #ff5c59;
-  font: 800 23px/1 system-ui, sans-serif;
+  font: 900 30px/1 system-ui, sans-serif;
   text-align: center;
-  text-shadow: 0 2px 5px #000, 0 0 10px #ff56577d;
+  text-shadow: 0 2px 5px #000, 0 0 13px #ff5657b0;
   pointer-events: none;
 }
 @media (prefers-reduced-motion: no-preference) {
   .monitoring-site-pin svg { animation: monitoring-pin-enter 700ms ease-out both; }
   .monitoring-pin-warning {
-    animation: monitoring-alert-rise 4.4s ease-out 650ms infinite both;
+    animation: monitoring-alert-rise 2.8s ease-out 450ms infinite both;
   }
 }
 @keyframes monitoring-pin-enter { from { opacity: 0; } to { opacity: 1; } }
@@ -519,5 +521,7 @@
   0% { opacity: 0; transform: translateY(3px) scale(.82); }
   10% { opacity: 1; transform: translateY(-6px) scale(1); }
   27% { opacity: .9; transform: translateY(-13px) scale(1); }
-  46%, 100% { opacity: 0; transform: translateY(-24px) scale(.96); }
+  46%, 100% { opacity: 0; transform: translateY(-30px) scale(.96); }
 }
+
+.sar-floating-insight-popover { width: max-content; font-size: 12px; line-height: 1.3; }

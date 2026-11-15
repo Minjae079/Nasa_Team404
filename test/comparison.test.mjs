@@ -14,11 +14,16 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
     return nodes.get(id);
   };
   const frames = new Map();
+  const timers = new Map();
+  const windowEvents = {};
   let frameId = 0;
+  let timerId = 0;
   const context = vm.createContext({
-    fetch, console, clearTimeout, encodeURIComponent, URL, maplibregl, options,
-    window: { innerWidth: options.viewportWidth ?? 1280, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
-      cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener() {} },
+    fetch, console, encodeURIComponent, URL, maplibregl, options,
+    setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
+    clearTimeout: id => timers.delete(id),
+    window: { innerWidth: options.viewportWidth ?? 1280, innerHeight: 840, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
+      cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener(name, handler) { windowEvents[name] = handler; } },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
       createElement: options.createElement ?? (() => ({})) },
   });
@@ -32,7 +37,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
       leave: () => { comparisonRequestId++; mode = 'map'; },
     };
     function start() {`), context);
-  return { controller: context.controller, node, frames };
+  return { controller: context.controller, node, frames, timers, windowEvents };
 }
 
 const pair = {
@@ -225,7 +230,7 @@ test('zoom alone enters and exits detail view without recreating the map', () =>
 });
 
 
-test('globe rotates while approaching, stays unmarked until selection, and respects motion preferences', () => {
+test('globe rotates while approaching, resumes after a gesture, and respects motion preferences', () => {
   class Map {
     constructor(options) { this.options = options; this.events = {}; this.center = { lng: options.center[0], lat: options.center[1] }; this.zoom = options.zoom; }
     getCanvas() { return { setAttribute() {} }; }
@@ -303,6 +308,22 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
   assert.equal(interruptedMap.stopped, true);
   interruptedMap.events.moveend();
   assert.equal(interrupted.frames.size, 0);
+  assert.equal(interrupted.timers.size, 0);
+  interrupted.windowEvents.touchend({ touches: [{}] });
+  assert.equal(interrupted.timers.size, 0);
+  interrupted.windowEvents.touchend({ touches: [] });
+  interruptedMap.isMoving = () => true;
+  function completeDelay() {
+    const [id, callback] = interrupted.timers.entries().next().value;
+    interrupted.timers.delete(id);
+    callback();
+  }
+  completeDelay();
+  assert.equal(interrupted.frames.size, 0);
+  interruptedMap.isMoving = () => false;
+  interruptedMap.events.moveend();
+  completeDelay();
+  assert.equal(interrupted.frames.size, 1);
 });
 
 test('home camera padding follows responsive layout and reserves the wider comparison panel', async () => {
@@ -330,9 +351,9 @@ test('home camera padding follows responsive layout and reserves the wider compa
   await controller.openComparison(35,130);
   assert.equal(node("homeHero").inert,true);
   assert.equal(map.flight.duration,0);
-  assert.deepEqual(Object.values(map.padding),[627,0,80,80]);
+  assert.deepEqual(Object.values(map.padding),[592,0,80,80]);
   map.events.move();
-  assert.equal(updates.at(-1).offsetX,313.5);
+  assert.equal(updates.at(-1).offsetX,296);
   map.zoom = 15;
   controller.goHome();
   assert.equal(map.padding.left,410);
@@ -347,7 +368,7 @@ test('home camera padding follows responsive layout and reserves the wider compa
   const smoothMap = smooth.controller.state().map;
   await smooth.controller.openComparison(35,130);
   assert.equal(smoothMap.flight.duration,1200);
-  assert.equal(smoothMap.flight.padding.left,627);
+  assert.equal(smoothMap.flight.padding.left,592);
   assert.equal(smoothMap.flight.easing(0),0);
   assert.equal(smoothMap.flight.easing(1),1);
   assert.ok(smoothMap.flight.easing(0.1) < 0.1);

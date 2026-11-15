@@ -12,7 +12,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const ROTATION_RATE = .006;
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
-  const PHOTO_ZOOM = 2.2; // Slightly wider Earth framing while the analysis panel is open.
+  const PHOTO_ZOOM = 2.1;
   // 수정된 부분: duration in milliseconds for View local map.
   const LOCAL_MAP_FLIGHT_MS = 2400;
   const SCENE_FLIGHT_MS = 1200;
@@ -24,9 +24,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const fallback = $("globeFallback");
   const listeners = [];
   let disposed = false;
-  function listen(target, event, handler) {
-    target.addEventListener(event, handler);
-    listeners.push(() => target.removeEventListener(event, handler));
+  function listen(target, event, handler, options) {
+    target.addEventListener(event, handler, options);
+    listeners.push(() => target.removeEventListener(event, handler, options));
   }
   let map;
   let marker;
@@ -52,17 +52,32 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   let introActive = false;
   let mapLoaded = false;
   let monitoringVisible = false;
+  let globeGestureActive = false;
+  let resumeAfterInteraction = false;
+  let rotationResumeTimer;
   function stopGlobeMotion() {
+    clearTimeout(rotationResumeTimer);
+    resumeAfterInteraction = false;
     homeMotionPending = false;
     introActive = false;
     if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
     rotationFrame = null;
     previousRotationTime = null;
   }
+  function queueGlobeRotation() {
+    if (!resumeAfterInteraction || globeGestureActive || mode !== "globe" || reducedMotion.matches) return;
+    clearTimeout(rotationResumeTimer);
+    rotationResumeTimer = setTimeout(() => {
+      if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
+      resumeAfterInteraction = false;
+      startGlobeRotation();
+    }, 450);
+  }
   function startGlobeRotation({ intro = false } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
     introActive = intro;
     let introElapsed = 0;
+    let rotationElapsed = intro ? 400 : 0;
     function rotate(time) {
       rotationFrame = null;
       if (disposed || reducedMotion.matches || mode !== "globe") return;
@@ -93,7 +108,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           if (progress === 1) introActive = false;
         } else {
           const { lng, lat } = map.getCenter();
-          camera = { center: [((lng - elapsed * ROTATION_RATE + 540) % 360) - 180, lat] };
+          rotationElapsed += elapsed;
+          const speed = ROTATION_RATE * Math.min(rotationElapsed / 400, 1);
+          camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
         if (!introActive) revealMonitoring();
@@ -178,19 +195,29 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       map.on("move", syncSkyCamera);
       syncSkyCamera();
       map.on("zoom", syncZoomMode);
-      // Stop before a drag or wheel gesture so animation never fights the user.
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
         map.on(eventName, () => {
           motionInterrupted = true;
           const interruptIntro = homeMotionPending || introActive;
           stopGlobeMotion();
+          globeGestureActive ||= eventName !== "wheel";
+          resumeAfterInteraction = mode === "globe";
           if (interruptIntro) map.stop();
+          queueGlobeRotation();
         });
+      }
+      for (const eventName of ["mouseup", "touchend", "touchcancel", "blur"]) {
+        listen(window, eventName, event => {
+          if (event.touches?.length) return;
+          globeGestureActive = false;
+          queueGlobeRotation();
+        }, true);
       }
       map.on("movestart", event => {
         if (event.originalEvent) {
           motionInterrupted = true;
           stopGlobeMotion();
+          resumeAfterInteraction = mode === "globe";
           cameraDestination = null;
         }
       });
@@ -202,6 +229,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         if (homeMotionPending && mode === "globe") {
           homeMotionPending = false;
           startGlobeRotation();
+        } else {
+          queueGlobeRotation();
         }
       });
       map.on("dblclick", event => {
@@ -294,10 +323,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     // lower portion on phones. Keep the selected location in the free globe area.
     // Padding is applied to the map camera, never to the canvas with CSS transforms.
     if (mode === "compare") {
-      if (desktop) return {
-        left: Math.round(Math.min(790, Math.max(505, window.innerWidth * 0.49))),
-        right: 0, top: 80, bottom: 80,
-      };
+      if (desktop) {
+        const height = window.innerHeight;
+        const width = Math.min(580, Math.max(390, Math.min(window.innerWidth * .4, height * .75 - 94, height - 289)));
+        const gutter = Math.min(76, Math.max(24, window.innerWidth * .0435));
+        globeScene.style?.setProperty("--observation-width", `${width}px`);
+        return { left: Math.round(gutter + width + 24), right: 0, top: 80, bottom: 80 };
+      }
       return { left: 0, right: 0, top: 0, bottom: Math.round(globeScene.clientHeight * 0.43) };
     }
     const home = mode === "globe" && !selectedLocation;
@@ -386,13 +418,17 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
       refreshRasterLayers(false);
+      resumeAfterInteraction = true;
+      queueGlobeRotation();
     }
   }
   function globeZoom(direction) {
     motionInterrupted = true;
     stopGlobeMotion();
     cameraDestination = null;
+    resumeAfterInteraction = mode === "globe";
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
+    queueGlobeRotation();
   }
   function flyTo(lat, lng) {
     motionInterrupted = true;
