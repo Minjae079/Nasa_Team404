@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ObservationInsights, ObservationSiren } from './ObservationContext.jsx';
+import { ObservationInsights } from './ObservationContext.jsx';
+import { FloodAssessmentSiren } from './FloodAssessmentSiren.jsx';
 
 const clamp = value => Math.max(0, Math.min(100, value));
 
@@ -113,7 +114,7 @@ export function SarSwipeComparison({
             <button type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>SAR CHANGE</button>
           </div>
-          <ObservationSiren />
+          <FloodAssessmentSiren sceneId={sceneId} />
         </div>
       <div className="sar-imagery-content">
       <div className="sar-imagery-main">
