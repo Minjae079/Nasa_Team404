@@ -41,6 +41,15 @@
 .sar-swipe-image, .sar-swipe-before { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sar-swipe-image { object-fit: contain; display: block; pointer-events: none; user-select: none; }
 .sar-swipe-before { overflow: hidden; pointer-events: none; }
+.sar-ai-layer { position: absolute; inset: 0; background: #172830; pointer-events: none; }
+.sar-imagery-layer { opacity: 0; visibility: hidden; }
+.sar-imagery-layer[data-visible='true'] { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: no-preference) {
+  .sar-imagery-layer { transition: opacity 240ms ease-out, visibility 0s linear 240ms; }
+  .sar-imagery-layer[data-visible='true'] { transition-delay: 0s; }
+  .sar-swipe-boundary { animation: sar-swipe-boundary-enter 240ms ease-out both; }
+}
+@keyframes sar-swipe-boundary-enter { from { opacity: 0; } to { opacity: 1; } }
 
 .sar-swipe-boundary { position: absolute; top: 0; bottom: 0; width: 2px; background: #f0f8e9; box-shadow: 0 0 8px #0009; transform: translateX(-50%); }
 .sar-swipe-handle { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e1efcf; color: #19362d; border: 2px solid #30483c; font-size: 16px; box-shadow: 0 2px 8px #0008; }
@@ -513,7 +522,7 @@
 @media (prefers-reduced-motion: no-preference) {
   .monitoring-site-pin svg { animation: monitoring-pin-enter 700ms ease-out both; }
   .monitoring-pin-warning {
-    animation: monitoring-alert-rise 2.8s ease-out 450ms infinite both;
+    animation: monitoring-alert-rise 1.5s ease-out 450ms infinite both;
   }
 }
 @keyframes monitoring-pin-enter { from { opacity: 0; } to { opacity: 1; } }

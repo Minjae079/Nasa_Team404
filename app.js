@@ -303,7 +303,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         flyTo(site.lat, site.lng);
       });
       listen(element, 'dblclick', event => event.stopPropagation());
-      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0 })
+      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
         .setLngLat([site.lng, site.lat]).addTo(map));
     }
   }
@@ -314,7 +314,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       marker?.remove();
       return;
     }
-    marker ??= new maplibregl.Marker({ color: "#d5fa79" });
+    marker ??= new maplibregl.Marker({ color: "#d5fa79", subpixelPositioning: true });
     marker.setLngLat([lng, lat]).addTo(map);
   }
   function scenePadding() {
@@ -328,7 +328,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         const width = Math.min(580, Math.max(390, Math.min(window.innerWidth * .4, height * .75 - 94, height - 289)));
         const gutter = Math.min(76, Math.max(24, window.innerWidth * .0435));
         globeScene.style?.setProperty("--observation-width", `${width}px`);
-        return { left: Math.round(gutter + width + 24), right: 0, top: 80, bottom: 80 };
+        // The header covers the top of the canvas, so center below it.
+        const top = document.querySelector(".topbar")?.offsetHeight ?? 84;
+        return { left: Math.round(gutter + width + 24), right: 0, top, bottom: 0 };
       }
       return { left: 0, right: 0, top: 0, bottom: Math.round(globeScene.clientHeight * 0.43) };
     }

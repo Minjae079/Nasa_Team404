@@ -21,6 +21,7 @@ export function SarSwipeComparison({
   onImageFailure,
 }) {
   const [mode, setMode] = useState('swipe');
+  const [aiAttempt, setAiAttempt] = useState(0);
   const [aiFailed, setAiFailed] = useState(false);
   const [overlayFailed, setOverlayFailed] = useState(false);
   const [split, setSplit] = useState(50);
@@ -93,7 +94,16 @@ export function SarSwipeComparison({
     onImageFailure?.();
   }
 
-  const displayed = mode === 'ai' ? sizes.ai : before;
+  function showAi() {
+    if (aiAttempt === 0 || aiFailed) {
+      setAiAttempt(attempt => attempt + 1);
+      setAiFailed(false);
+    }
+    setMode('ai');
+  }
+
+  const aiReady = Boolean(sizes.ai && !aiFailed);
+  const displayed = mode === 'ai' && aiReady ? sizes.ai : before;
   const aspectRatio = displayed ? `${displayed.width} / ${displayed.height}` : '1828 / 2048';
   const imageAspect = displayed ? displayed.width / displayed.height : 1828 / 2048;
 
@@ -115,7 +125,7 @@ export function SarSwipeComparison({
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
-            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => { setAiFailed(false); setMode('ai'); }}>Flood candidates</button>}
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Flood candidates</button>}
           </div>
           <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
@@ -140,7 +150,6 @@ export function SarSwipeComparison({
             <img
               className="sar-swipe-image"
               aria-hidden={mode !== 'swipe'}
-              style={mode === 'ai' ? { visibility: 'hidden' } : undefined}
               src={afterUrl}
               alt={`NISAR observation after, ${afterDate}`}
               draggable={false}
@@ -149,9 +158,10 @@ export function SarSwipeComparison({
             />
 
             <div
-              className="sar-swipe-before"
+              className="sar-swipe-before sar-imagery-layer"
+              data-visible={mode === 'swipe'}
               aria-hidden={mode !== 'swipe'}
-              style={{ clipPath: `inset(0 ${100 - split}% 0 0)`, visibility: mode === 'swipe' ? 'visible' : 'hidden' }}
+              style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}
             >
               <img
                 className="sar-swipe-image"
@@ -163,21 +173,25 @@ export function SarSwipeComparison({
               />
             </div>
 
-            <img className="sar-swipe-image sar-change-image" src={changeUrl}
+            <img className="sar-swipe-image sar-change-image sar-imagery-layer" src={changeUrl}
               alt="SAR backscatter change, absolute change of at least 3 dB"
-              style={{ visibility: mode === 'change' && overlayReady ? 'visible' : 'hidden' }}
+              data-visible={Boolean(mode === 'change' && overlayReady)}
+              aria-hidden={mode !== 'change' || !overlayReady}
               draggable={false} onLoad={event => handleLoad('change', event)}
               onError={() => { setOverlayFailed(true); onImageFailure?.(); }} />
 
-            {aiUrl && mode === 'ai' && <>
-              <img className="sar-swipe-image" src={aiUrl}
-                alt="Blue experimental V1-long flood candidates over the later NISAR observation"
-                draggable={false} onLoad={event => handleLoad('ai', event)}
-                onError={() => setAiFailed(true)} />
-              {(!sizes.ai || aiFailed) && <div className="sar-swipe-notice" role="status">
-                {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
-              </div>}
-            </>}
+            {aiUrl && aiAttempt > 0 && (
+              <div className="sar-ai-layer sar-imagery-layer" data-visible={mode === 'ai' && aiReady}
+                aria-hidden={mode !== 'ai' || !aiReady}>
+                <img key={aiAttempt} className="sar-swipe-image" src={aiUrl}
+                  alt="Blue experimental V1-long flood candidates over the later NISAR observation"
+                  draggable={false} onLoad={event => handleLoad('ai', event)}
+                  onError={() => setAiFailed(true)} />
+              </div>
+            )}
+            {mode === 'ai' && !aiReady && <div className="sar-swipe-notice" role="status">
+              {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
+            </div>}
             {ready && mode === 'swipe' && (
               <div
                 className="sar-swipe-boundary"

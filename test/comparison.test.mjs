@@ -25,6 +25,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
     window: { innerWidth: options.viewportWidth ?? 1280, innerHeight: 840, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
       cancelAnimationFrame: id => frames.delete(id), matchMedia: query => ({ matches: query.includes('prefers-reduced-motion') ? reduceMotion : true }), addEventListener(name, handler) { windowEvents[name] = handler; } },
     document: { getElementById: node, readyState: 'loading', addEventListener() {},
+      querySelector: selector => selector === '.topbar' ? { offsetHeight: 84 } : null,
       createElement: options.createElement ?? (() => ({})) },
   });
   // Expose the real controller without booting WebGL or CDN assets.
@@ -351,9 +352,10 @@ test('home camera padding follows responsive layout and reserves the wider compa
   await controller.openComparison(35,130);
   assert.equal(node("homeHero").inert,true);
   assert.equal(map.flight.duration,0);
-  assert.deepEqual(Object.values(map.padding),[592,0,80,80]);
+  assert.deepEqual(Object.values(map.padding),[592,0,84,0]);
   map.events.move();
   assert.equal(updates.at(-1).offsetX,296);
+  assert.equal(updates.at(-1).offsetY,42);
   map.zoom = 15;
   controller.goHome();
   assert.equal(map.padding.left,410);
@@ -474,6 +476,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
   assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
   assert.equal(pins[0].options.anchor, 'bottom');
+  assert.equal(pins[0].options.subpixelPositioning, true);
   const clicks = pins[0].options.element.events;
   clicks.pointerdown({ isPrimary: true, button: 0, stopPropagation() {} });
   assert.equal(stopped, false);
