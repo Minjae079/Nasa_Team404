@@ -7,43 +7,27 @@ export function AboutDialog() {
         aria-labelledby="modalTitle" aria-describedby="guide-intro">
         <button className="modal-close" id="closeAbout" aria-label="Close dialog">×</button>
         <h2 id="modalTitle">How it works</h2>
-        <p id="guide-intro">Compare NISAR radar images from two dates and inspect possible changes in surface water.</p>
+        <p id="guide-intro">Choose a pin or enter coordinates to see how a place looks on two different dates.</p>
 
-        <div className="guide-workflow">
-          <section className="guide-card">
-            <h3>Choose an observation</h3>
-            <p>Rotate or zoom the globe. Select a pin, enter coordinates, or use <strong>Explore Chicago</strong>.</p>
-            <p>White pins are shortcuts. The panel shows the actual region and coordinates of its radar images.</p>
-          </section>
-          <section className="guide-card">
-            <h3>Compare two dates</h3>
-            <dl className="guide-modes">
-              <div><dt>SWIPE</dt><dd>Drag to compare the earlier and later radar images.</dd></div>
-              <div><dt>Radar change</dt><dd>See where the radar return changed between dates.</dd></div>
-              <div><dt>Flood candidates</dt><dd>Where available, blue marks areas flagged by the model.</dd></div>
-            </dl>
-          </section>
-          <section className="guide-card">
-            <h3>Inspect the context</h3>
-            <p>Hover over the siren for the screening level. The other icons show <strong>7-day rainfall</strong>, <strong>historical water occurrence</strong>, and <strong>relative elevation</strong>.</p>
-            <p>Some supporting readings are illustrative.</p>
-          </section>
-        </div>
+        <dl className="guide-modes">
+          <div><dt>SWIPE</dt><dd>Drag the divider to compare the two NISAR images.</dd></div>
+          <div><dt>Radar change</dt><dd>Look for places where the radar return changed.</dd></div>
+          <div><dt>Flood candidates</dt><dd>Blue shows where the model picked up signs of possible flooding.</dd></div>
+        </dl>
 
-        <section className="guide-model">
-          <h3>AI model · Temporal U-Net</h3>
-          <p>We trained a pixel segmentation model on labeled before-and-after Sentinel-1 radar pairs from
-            GEOID-Flood (VV/VH). The labels distinguish background, permanent water, and flooded water.
-            We applied the model to NISAR before-and-after pairs (HH/HV) to highlight possible new inundation.</p>
-        </section>
-
+        <p className="guide-context">Hover over the panel icons for the screening level, 7-day rainfall, past water occurrence, and relative elevation. Some of these readings are illustrative.</p>
         <ul className="guide-legend" aria-label="Globe marker colors">
-          <li data-level="0">Observation shortcut</li>
+          <li data-level="0">Shortcut</li>
           <li data-level="1">Low screening</li>
           <li data-level="2">Caution</li>
           <li data-level="3">Experimental warning</li>
         </ul>
-        <p className="guide-notice">The flood layer shows experimental model candidates. Confirm conditions using local observations and official alerts.</p>
+        <p className="guide-context">White pins open observations elsewhere. The panel shows where the images were taken.</p>
+
+        <section className="guide-model">
+          <h3>Where the blue comes from</h3>
+          <p>We trained a Temporal U-Net on labeled Sentinel-1 radar pairs from GEOID-Flood. It learns to separate floodwater, permanent water, and background. Here it runs on NISAR pairs, so treat blue areas as candidates for review.</p>
+        </section>
 
         <footer className="guide-footer">
           <details className="guide-connection"><summary>Data connection</summary><ConnectionStatus /></details>

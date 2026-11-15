@@ -206,6 +206,7 @@ export function InsightTrigger({
   const [position, setPosition] = useState(null);
 
   const visible = hovered;
+  const multiline = typeof text !== 'string';
 
   useEffect(() => {
     if (!visible) return;
@@ -235,13 +236,14 @@ export function InsightTrigger({
             )
           );
 
+      const height = multiline ? 62 : 42;
       const desiredTop = external
-        ? anchor.top + anchor.height / 2 - 15
-        : anchor.top - 38;
+        ? anchor.top + (anchor.height - height) / 2
+        : anchor.top - height - 8;
 
       const top = Math.max(
         12,
-        Math.min(desiredTop, window.innerHeight - 42)
+        Math.min(desiredTop, window.innerHeight - height - 12)
       );
 
       setPosition({ left, top, maxWidth: width });
@@ -265,7 +267,7 @@ export function InsightTrigger({
       window.removeEventListener('scroll', place, true);
       document.removeEventListener('keydown', escape);
     };
-  }, [visible]);
+  }, [visible, multiline]);
 
   return (
     <>
@@ -382,7 +384,12 @@ export function ObservationInsights({ sceneId, scenarioMetrics }) {
             key={item.key}
           >
             <InsightTrigger
-              text={text}
+              text={item.key === 'rainfall' ? (
+                <span className="sar-rainfall-tooltip">
+                  <span>{item.label}</span>
+                  <span className="sar-rainfall-value">{summary}</span>
+                </span>
+              ) : text}
               ariaLabel={text}
               level={value !== null ? indicatorLevel(item.key, metric.value) : 0}
             >

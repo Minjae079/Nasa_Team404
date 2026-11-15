@@ -335,7 +335,7 @@
   color: #fff;
 }
 .scene-globe .sar-swipe-dialog .sar-console-imagery {
-  padding-bottom: clamp(16px, 2vh, 20px);
+  padding-bottom: clamp(20px, 2.4vh, 24px);
 }
 /* Rendered in document.body to escape the console's clipping boundary. */
 .sar-floating-insight-popover {
@@ -543,3 +543,12 @@
 }
 
 .sar-floating-insight-popover { width: max-content; font-size: 12px; line-height: 1.3; }
+
+.sar-floating-insight-popover .sar-rainfall-tooltip { display: grid; gap: 3px; }
+.sar-floating-insight-popover .sar-rainfall-value {
+  color: #f1f6f7;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

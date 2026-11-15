@@ -261,5 +261,86 @@
       "waterHistory": 9,
       "relativeElevation": 0.3
     }
+  },
+  {
+    "slug": "madison-lakes",
+    "id": "nisar-madison-lakes-2026-09-28-2026-10-10",
+    "title": "Madison · Lake Mendota",
+    "lat": 43.105,
+    "lng": -89.415,
+    "bounds": [
+      -89.479833,
+      43.057538,
+      -89.350476,
+      43.152321
+    ],
+    "level": 1,
+    "before": {
+      "observed_at": "2026-09-28"
+    },
+    "after": {
+      "observed_at": "2026-10-10"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 12,
+      "waterHistory": 19,
+      "relativeElevation": 0.8
+    }
+  },
+  {
+    "slug": "atchafalaya",
+    "id": "nisar-atchafalaya-2026-08-20-2026-09-01",
+    "title": "Atchafalaya Basin",
+    "lat": 30.2,
+    "lng": -91.53,
+    "bounds": [
+      -91.556932,
+      30.1766,
+      -91.50307,
+      30.223386
+    ],
+    "level": 1,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 47,
+      "waterHistory": 25,
+      "relativeElevation": -0.6
+    }
+  },
+  {
+    "slug": "patna-ganges",
+    "id": "nisar-patna-ganges-2026-08-28-2026-09-09",
+    "title": "Patna · Ganges Floodplain",
+    "lat": 25.63,
+    "lng": 85.17,
+    "bounds": [
+      85.118218,
+      25.583148,
+      85.221578,
+      25.676849
+    ],
+    "level": 2,
+    "before": {
+      "observed_at": "2026-08-28"
+    },
+    "after": {
+      "observed_at": "2026-09-09"
+    },
+    "candidateShare": 1.48,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 62,
+      "waterHistory": 27,
+      "relativeElevation": -0.9
+    }
   }
 ]
