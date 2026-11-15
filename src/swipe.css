@@ -1,0 +1,358 @@
+.sar-swipe-dialog { width: min(84vw, 1180px); height: 86dvh; max-width: none; max-height: none; margin: auto; padding: 0; overflow: hidden; border: 1px solid #69818b55; border-radius: 16px; background: #0c1720e0; color: #e8efef; box-shadow: 0 24px 90px #0009, inset 0 1px #ffffff07; backdrop-filter: blur(10px); pointer-events: auto; }
+.sar-swipe-dialog::backdrop { background: #030a1233; }
+.sar-swipe-dialog *, .sar-swipe-dialog *::before { box-sizing: border-box; }
+.sar-swipe-viewer { height: 100%; display: flex; flex-direction: column; }
+.sar-console-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 26px 18px; border-bottom: 1px solid #78909b20; flex-shrink: 0; }
+.sar-console-kicker { color: #93a9b4; font-size: 9px; letter-spacing: .16em; }
+.sar-console-header h2 { margin: 5px 0 6px; font: 500 25px/1.15 var(--font-body, system-ui, sans-serif); letter-spacing: -.035em; }
+.sar-console-header p { margin: 0; color: #a1b3bd; font-size: 11px; font-variant-numeric: tabular-nums; }
+.sar-console-header p span { padding: 0 7px; color: #546a77; }
+.sar-swipe-close { align-self: flex-start; flex-shrink: 0; width: 36px; height: 36px; border: 1px solid #526b7833; border-radius: 50%; background: #ffffff04; color: #b7c6cc; font-size: 16px; cursor: pointer; }
+.sar-swipe-close:hover { background: #213139; color: white; }
+.sar-console-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 7fr) minmax(260px, 3fr); }
+.sar-console-imagery { display: flex; flex-direction: column; min-height: 0; min-width: 0; padding: 20px 24px; }
+.sar-console-modes { display: flex; gap: 4px; align-self: flex-start; margin-bottom: 18px; padding: 4px; border-radius: 7px; background: #070e1580; }
+.sar-console-modes button { border: 0; border-radius: 5px; padding: 10px 17px; min-height: 36px; background: transparent; color: #a5b5bf; font: 600 10px var(--font-body, system-ui, sans-serif); letter-spacing: .07em; cursor: pointer; }
+.sar-console-modes button[aria-pressed='true'] { background: #c6eaa6; color: #172b21; }
+.sar-console-modes button:hover:not([aria-pressed='true']) { background: #ffffff08; color: #edf4f3; }
+.sar-context { min-height: 0; overflow-y: auto; padding: 22px 23px; border-left: 1px solid #78909b20; background: #ffffff02; scrollbar-width: thin; scrollbar-color: #415562 transparent; }
+.sar-context h3 { margin: 0 0 17px; font: 500 14px var(--font-body, system-ui, sans-serif); color: #e1e8ec; }
+.sar-observation-info dl { margin: 0; display: grid; gap: 12px; }
+.sar-observation-info dl > div { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; line-height: 1.4; }
+.sar-observation-info dt { color: #93a9b4; }
+.sar-observation-info dd { margin: 0; text-align: right; color: #d9e3e8; }
+.sar-regional-context { border-top: 1px solid #78909b20; padding-top: 22px; margin-top: 24px; }
+.sar-context-card { padding: 12px 13px; background: #ffffff03; border: 1px solid #7c95a119; border-radius: 7px; margin-top: 8px; }
+.sar-context-card h4 { margin: 0; font: 500 12px var(--font-body, system-ui, sans-serif); color: #d5e0e6; }
+.sar-context-card p { margin: 5px 0 9px; font-size: 10px; line-height: 1.5; color: #8fa4af; }
+.sar-context-card > span { font-size: 10px; color: #a8b7c0; }
+.sar-context-card small { display: block; margin-top: 5px; color: #8fa4af; }
+.sar-flood-status { display: flex; justify-content: space-between; gap: 10px; margin: 20px 0 0; color: #93a9b4; font-size: 10px; }
+.sar-flood-status span { color: #d3c4a4; }
+.sar-console-footer { display: flex; justify-content: space-between; gap: 12px; padding: 12px 25px; border-top: 1px solid #78909b20; color: #9bafb9; font-size: 9px; line-height: 1.5; }
+.sar-retry { align-self: center; margin: 8px; background: #192c38; color: #e1edee; border: 1px solid #526b78; border-radius: 4px; padding: 7px 12px; cursor: pointer; }
+/* Retain the existing comparison as a fallback for other bundles. */
+.has-floating-console > .compare-status, .has-floating-console > .compare-chooser, .has-floating-console > .stored-grid { display: none; }
+.scene-compare:has(.has-floating-console) > .compare-top { visibility: hidden; }
+.sar-swipe-dates { display: flex; justify-content: space-between; gap: 12px; padding: 0 2px 12px; color: #ced8dc; font-size: 11px; font-variant-numeric: tabular-nums; }
+.sar-swipe-dates strong { color: #8ba1ac; font-size: 9px; font-weight: 500; letter-spacing: .12em; margin-right: 8px; }
+.sar-swipe-stage { flex: 1; min-height: 0; container-type: size; display: grid; place-items: center; overflow: hidden; border: 1px solid #26363f; border-radius: 5px; background: #091117; }
+.sar-swipe-frame { position: relative; width: min(100cqw, calc(100cqh * var(--sar-image-aspect))); max-width: 100%; overflow: hidden; isolation: isolate; background: #172830; cursor: ew-resize; touch-action: none; user-select: none; }
+.sar-swipe-image, .sar-swipe-before { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sar-swipe-image { object-fit: contain; display: block; pointer-events: none; user-select: none; }
+.sar-swipe-before { overflow: hidden; pointer-events: none; }
+
+.sar-swipe-boundary { position: absolute; top: 0; bottom: 0; width: 2px; background: #f0f8e9; box-shadow: 0 0 8px #0009; transform: translateX(-50%); }
+.sar-swipe-handle { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e1efcf; color: #19362d; border: 2px solid #30483c; font-size: 23px; box-shadow: 0 2px 14px #0008; }
+.sar-swipe-boundary:focus-visible { outline: none; }
+.sar-swipe-boundary:focus-visible .sar-swipe-handle { outline: 3px solid #d3f5a6; outline-offset: 4px; }
+.sar-swipe-dialog button:focus-visible { outline: 2px solid #d3f5a6; outline-offset: 3px; }
+.sar-swipe-notice { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: #091922f2; color: #f0d8ad; text-align: center; font-size: 13px; }
+.sar-swipe-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 12px 0; color: #93a6b0; font-size: 10px; line-height: 1.5; }
+.sar-view-change { cursor: default; touch-action: auto; }
+@media (max-width: 760px) {
+  .sar-swipe-dialog { width: calc(100vw - 24px); height: 88dvh; border-radius: 12px; }
+  .sar-console-header { padding: 17px 18px; }
+  .sar-console-header h2 { font-size: 22px; }
+  .sar-console-body { display: block; overflow-y: auto; }
+  .sar-console-imagery { padding: 16px; }
+  .sar-swipe-stage { flex: none; height: min(54dvh, 108vw); min-height: 230px; }
+  .sar-context { overflow: visible; padding: 22px 20px; border-left: 0; border-top: 1px solid #78909b20; }
+  .sar-console-footer { padding: 10px 16px; font-size: 9px; }
+  .sar-console-footer > span:last-child { display: none; }
+  .sar-swipe-dates strong { display: block; margin-bottom: 5px; }
+  .sar-swipe-dates > span:last-child { text-align: right; }
+}
+@media (max-height: 620px) and (min-width: 761px) { .sar-console-header { padding: 12px 24px; } .sar-console-header h2 { font-size: 20px; } .sar-console-imagery { padding: 12px 20px; } .sar-console-modes { margin-bottom: 10px; } }
+
+/* TASK A — Compact, non-modal observation console.
+   Keep the MapLibre surface interactive everywhere outside this panel. */
+.scene-globe .sar-swipe-dialog {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  inset: auto;
+  top: clamp(100px, 15vh, 142px);
+  left: clamp(18px, 3.2vw, 52px);
+  width: clamp(340px, 30vw, 420px);
+  height: min(75dvh, calc(100dvh - 195px));
+  max-width: calc(100vw - 32px);
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #0c1720ed;
+  pointer-events: auto;
+}
+.scene-globe .sar-swipe-dialog .sar-swipe-viewer { height: 100%; }
+.scene-globe .sar-swipe-dialog .sar-console-header { padding: 14px 16px 12px; gap: 10px; }
+.scene-globe .sar-swipe-dialog .sar-console-header h2 { font-size: 20px; margin: 3px 0 4px; }
+.scene-globe .sar-swipe-dialog .sar-console-header p { font-size: 10px; }
+.scene-globe .sar-swipe-dialog .sar-swipe-close { width: 32px; height: 32px; }
+.scene-globe .sar-swipe-dialog .sar-console-body { display: flex; flex-direction: column; min-height: 0; }
+.scene-globe .sar-swipe-dialog .sar-console-imagery { flex: 1; padding: 13px 15px; min-height: 0; }
+.scene-globe .sar-swipe-dialog .sar-console-modes { margin-bottom: 10px; }
+.scene-globe .sar-swipe-dialog .sar-console-modes button { padding: 9px 12px; min-height: 32px; }
+.scene-globe .sar-swipe-dialog .sar-swipe-dates { padding-bottom: 8px; font-size: 10px; }
+.scene-globe .sar-swipe-dialog .sar-swipe-stage { flex: 1; min-height: 0; }
+/* Context cards will be replaced by three hover/focus insights in Task B. */
+.scene-globe .sar-swipe-dialog .sar-context { display: none; }
+.scene-globe .sar-swipe-dialog .sar-console-footer { padding: 9px 14px; font-size: 9px; }
+.scene-globe .sar-swipe-dialog .sar-console-footer > span:last-child { display: none; }
+/* A loading or unavailable location retains the compact layout. */
+.scene-globe .sar-floating-placeholder { padding: 16px; height: auto; min-height: 185px; }
+.sar-floating-placeholder-header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.sar-floating-placeholder h2 { margin: 10px 0 3px; font: 500 20px/1.2 var(--font-body, system-ui, sans-serif); }
+.sar-floating-coordinates { margin: 0 0 24px; color: #9fb3bf; font-size: 11px; }
+.sar-floating-availability { color: #b8cad0; font-size: 12px; line-height: 1.6; }
+.sar-floating-availability[data-kind='empty'], .sar-floating-availability[data-kind='error'] { color: #edcba1; }
+.scene-compare:has(.sar-floating-placeholder) > .compare-top { visibility: hidden; }
+.stored-comparison:has(.sar-floating-placeholder) > .compare-status { display: none; }
+.scene-globe .stored-comparison .sar-swipe-dialog { pointer-events: auto; }
+/* Keep map controls clear of the panel on wide screens. */
+.scene-globe.is-comparing .globe-controls { left: auto; right: clamp(16px, 3vw, 52px); bottom: 90px; transform: none; }
+@media (max-width: 900px) {
+  /* A bottom sheet leaves the uncovered globe available for direct gestures. */
+  .scene-globe.is-comparing .globe-viz { inset: 0; }
+  .scene-globe .sar-swipe-dialog {
+    top: auto;
+    right: 12px;
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    width: auto;
+    height: min(47dvh, 430px);
+    max-width: none;
+  }
+  .scene-globe .sar-swipe-dialog .sar-console-header { padding: 10px 13px; }
+  .scene-globe .sar-swipe-dialog .sar-console-header h2 { font-size: 17px; }
+  .scene-globe .sar-swipe-dialog .sar-console-imagery { padding: 10px 13px; }
+  .scene-globe .sar-swipe-dialog .sar-console-modes { margin-bottom: 7px; }
+  .scene-globe .sar-swipe-dialog .sar-console-modes button { min-height: 30px; padding: 7px 10px; }
+  .scene-globe .sar-swipe-dialog .sar-swipe-dates { padding-bottom: 6px; }
+  .scene-globe .sar-swipe-dialog .sar-console-footer { padding: 7px 12px; }
+  .scene-globe .sar-floating-placeholder { height: auto; max-height: 47dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-globe .scene-compare:not([hidden]) { animation: none; }
+}
+
+/* TASK B — Slightly wider console, with a slim 3×1 evidence insight rail.
+   Keep the Swipe stage dimensions approximately unchanged. */
+@media (min-width: 901px) {
+  .scene-globe .sar-swipe-dialog {
+    width: clamp(405px, 32vw, 485px);
+  }
+}
+.scene-globe .sar-swipe-dialog .sar-imagery-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 9px;
+}
+.scene-globe .sar-swipe-dialog .sar-imagery-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.scene-globe .sar-swipe-dialog .sar-insight-rail {
+  flex: 0 0 47px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  min-height: 0;
+  position: relative;
+  z-index: 5;
+}
+.scene-globe .sar-swipe-dialog .sar-insight-item { position: relative; }
+.scene-globe .sar-swipe-dialog .sar-insight-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 48px;
+  padding: 11px;
+  border: 1px solid #4a66704d;
+  border-radius: 9px;
+  background: #152c38;
+  color: #b8d0d1;
+  cursor: pointer;
+  transition: border-color 170ms ease, color 170ms ease, background 170ms ease;
+}
+.scene-globe .sar-swipe-dialog .sar-insight-button svg { width: 23px; height: 23px; }
+.scene-globe .sar-swipe-dialog .sar-insight-button:hover,
+.scene-globe .sar-swipe-dialog .sar-insight-button[aria-expanded='true'],
+.scene-globe .sar-swipe-dialog .sar-insight-button:focus-visible {
+  border-color: #c9fa8b99;
+  background: #1e3940;
+  color: #c9fa8b;
+}
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip {
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  right: calc(100% + 12px);
+  transform: translateY(-50%);
+  width: min(235px, 66vw);
+  padding: 12px 13px;
+  border: 1px solid #6c8c846b;
+  border-radius: 9px;
+  background: #101f29f5;
+  box-shadow: 0 14px 32px #000a;
+  pointer-events: none;
+  text-align: left;
+}
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip strong,
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip span,
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip small { display: block; }
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip strong { color: #c9fa8b; font-size: 11px; margin-bottom: 5px; }
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip span { color: #eff4f4; font-size: 11px; line-height: 1.5; }
+.scene-globe .sar-swipe-dialog .sar-insight-tooltip small { color: #96b0ba; font-size: 10px; line-height: 1.5; margin-top: 4px; }
+@media (max-width: 900px) {
+  .scene-globe .sar-swipe-dialog .sar-insight-rail {
+    flex-basis: 38px;
+    gap: 7px;
+  }
+  .scene-globe .sar-swipe-dialog .sar-imagery-content { gap: 7px; }
+  .scene-globe .sar-swipe-dialog .sar-insight-button { width: 38px; height: 40px; padding: 8px; }
+  .scene-globe .sar-swipe-dialog .sar-insight-button svg { width: 21px; height: 21px; }
+  .scene-globe .sar-swipe-dialog .sar-insight-tooltip { width: min(205px, 62vw); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-globe .sar-swipe-dialog .sar-insight-button { transition: none; }
+}
+
+
+/* TASK C — Keep coordinate search clear of the analysis panel and make
+   the scientific flood-status warning visible without implying detection. */
+.scene-globe .sar-swipe-dialog .sar-console-header {
+  position: relative;
+  padding: 11px 16px 10px;
+}
+.scene-globe .sar-swipe-dialog .sar-console-heading {
+  width: 100%;
+  min-width: 0;
+}
+.scene-globe .sar-swipe-dialog .sar-console-kicker {
+  display: block;
+  margin-bottom: 6px;
+}
+.scene-globe .sar-swipe-dialog .sar-console-title-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+.scene-globe .sar-swipe-dialog .sar-console-title-line h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.scene-globe .sar-swipe-dialog .sar-console-title-line p {
+  margin: 0 0 0 auto;
+  white-space: nowrap;
+  font-size: 10px;
+  text-align: right;
+}
+.scene-globe .sar-swipe-dialog .sar-console-title-line p span { padding: 0 3px; }
+.scene-globe .sar-swipe-dialog .sar-console-header .sar-swipe-close {
+  position: absolute;
+  top: 9px;
+  right: 13px;
+  width: 29px;
+  height: 29px;
+}
+@media (min-width: 901px) {
+  /* Leave the 62px site footer completely uncovered, plus a 20px air gap.
+     The previous 24px bottom offset stretched the panel across the footer. */
+  .scene-globe .sar-swipe-dialog {
+    top: 164px;
+    bottom: 82px;
+    height: auto;
+    left: var(--explorer-gutter);
+  }
+  /* When search is expanded, its form belongs to the open globe area,
+     not on top of the satellite viewer. */
+  .scene-globe.is-comparing .coordinate-panel {
+    position: absolute;
+    left: calc(clamp(405px, 32vw, 485px) + 18px);
+    right: auto;
+    top: 0;
+    margin-top: 0;
+    width: min(330px, calc(100vw - clamp(405px, 32vw, 485px) - 120px));
+  }
+}
+@media (max-width: 900px) {
+  .scene-globe .sar-swipe-dialog .sar-console-title-line h2 { font-size: 17px; }
+  .scene-globe .sar-swipe-dialog .sar-console-header { padding: 10px 13px; }
+}
+
+/* TASK D — Single-line toolbar + neutral flood siren above the context rail.
+   The footer bar is intentionally absent; no validated flood alert exists. */
+.scene-globe .sar-swipe-dialog .sar-console-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+.scene-globe .sar-swipe-dialog .sar-console-toolbar .sar-console-modes {
+  margin: 0;
+}
+.scene-globe .sar-swipe-dialog .sar-console-alert {
+  width: 47px;
+  flex: 0 0 47px;
+}
+.scene-globe .sar-swipe-dialog .sar-siren-button {
+  width: 46px;
+  height: 42px;
+  color: #e2eaec;
+  border-color: #5b737c70;
+  background: #152c38;
+}
+.scene-globe .sar-swipe-dialog .sar-siren-button svg {
+  width: 22px;
+  height: 22px;
+}
+.scene-globe .sar-swipe-dialog .sar-siren-button:hover,
+.scene-globe .sar-swipe-dialog .sar-siren-button:focus-visible {
+  background: #1d3540;
+  border-color: #b5c8cd;
+  color: #fff;
+}
+.scene-globe .sar-swipe-dialog .sar-console-imagery {
+  padding-bottom: 12px;
+}
+/* Rendered in document.body to escape the console's clipping boundary. */
+.sar-floating-insight-popover {
+  position: fixed;
+  box-sizing: border-box;
+  z-index: 200;
+  max-width: calc(100vw - 24px);
+  padding: 11px 13px;
+  border: 1px solid #6b898b78;
+  border-radius: 10px;
+  background: #10242df7;
+  color: #ecf4f3;
+  box-shadow: 0 12px 38px #000b;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  font-family: var(--font-body, system-ui, sans-serif);
+  text-align: left;
+}
+.sar-floating-insight-popover strong,
+.sar-floating-insight-popover span,
+.sar-floating-insight-popover small { display: block; }
+.sar-floating-insight-popover strong { font-size: 11px; font-weight: 600; color: #d9ede6; margin-bottom: 5px; }
+.sar-floating-insight-popover span { font-size: 11px; line-height: 1.45; }
+.sar-floating-insight-popover small { color: #91abb7; font-size: 10px; line-height: 1.45; margin-top: 4px; }
+@media (max-width: 900px) {
+  .scene-globe .sar-swipe-dialog .sar-console-alert { flex-basis: 38px; width: 38px; }
+  .scene-globe .sar-swipe-dialog .sar-siren-button { width: 38px; height: 38px; padding: 8px; }
+  .scene-globe .sar-swipe-dialog .sar-console-toolbar { margin-bottom: 7px; }
+}

@@ -5,7 +5,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const INTRO_ZOOM = -0.75;
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
-  const PHOTO_ZOOM = 2.5;
+  const PHOTO_ZOOM = 2.2; // Slightly wider Earth framing while the analysis panel is open.
   // 수정된 부분: duration in milliseconds for View local map.
   const LOCAL_MAP_FLIGHT_MS = 2400;
   const SCENE_FLIGHT_MS = 1200;
@@ -182,8 +182,18 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     marker.setLngLat([lng, lat]).addTo(map);
   }
   function scenePadding() {
-    const home = mode === "globe" && !selectedLocation;
     const desktop = window.innerWidth > 900;
+    // The non-modal comparison occupies the left side on desktop and the
+    // lower portion on phones. Keep the selected location in the free globe area.
+    // Padding is applied to the map camera, never to the canvas with CSS transforms.
+    if (mode === "compare") {
+      if (desktop) return {
+        left: Math.round(Math.min(620, Math.max(420, window.innerWidth * 0.4))),
+        right: 0, top: 80, bottom: 80,
+      };
+      return { left: 0, right: 0, top: 0, bottom: Math.round(globeScene.clientHeight * 0.43) };
+    }
+    const home = mode === "globe" && !selectedLocation;
     return home
       ? desktop ? { left: Math.round(window.innerWidth * 0.32), right: 0, top: 80, bottom: 80 }
         : { left: 0, right: 0, top: 390, bottom: 150 }

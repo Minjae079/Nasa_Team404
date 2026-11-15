@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchJson } from '../lib/api.js';
+import { SarSwipeComparison } from './SarSwipeComparison.jsx';
+
+const VERIFIED_SWIPE_ID = 'nisar-sacdelta-hh-20261015-20261027-001';
 
 function StoredImage({ url, label, onFailure, onExpand }) {
   const [state, setState] = useState('loading');
@@ -14,7 +17,7 @@ function StoredImage({ url, label, onFailure, onExpand }) {
   </>;
 }
 
-export function StoredComparison({ point }) {
+export function StoredComparison({ point, onClose }) {
   const [state, setState] = useState({ kind: 'loading', result: null, available: [] });
   const [selectedId, setSelectedId] = useState('');
   const [revision, setRevision] = useState(0);
@@ -28,7 +31,10 @@ export function StoredComparison({ point }) {
     let refreshTimer;
     setPreview(null);
     dialog.current?.close();
-    setState({ kind: 'loading', result: null, available: [] });
+    // Keep the active console mounted while renewing its signed image URLs.
+    setState(previous => selectedId && previous.result?.id !== selectedId
+      ? { kind: 'loading', result: null, available: previous.available }
+      : { ...previous, kind: 'loading' });
     const params = new URLSearchParams({ lat: String(point.lat), lng: String(point.lng) });
     if (selectedId) params.set('id', selectedId);
     fetchJson(`/api/scene-results?${params}`, { signal: controller.signal }).then(data => {
@@ -44,7 +50,7 @@ export function StoredComparison({ point }) {
         }, Math.max(1000, Date.parse(data.urls_expire_at) - Date.now() - 30000));
       }
     }).catch(error => {
-      if (!controller.signal.aborted) setState({ kind: error.code === 'SUPABASE_NOT_CONFIGURED' ? 'setup' : 'error', result: null, available: [] });
+      if (!controller.signal.aborted) setState(previous => ({ ...previous, kind: error.code === 'SUPABASE_NOT_CONFIGURED' ? 'setup' : 'error' }));
     });
     return () => { controller.abort(); clearTimeout(refreshTimer); };
   }, [point.lat, point.lng, selectedId, revision]);
@@ -63,15 +69,16 @@ export function StoredComparison({ point }) {
     disabled: 'Published results are not enabled yet.',
     setup: 'The results service is not connected yet.',
     error: 'Unable to load stored results. Please try again.',
-    ready: 'Precomputed model outputs · No analysis is run when you click.',
+    ready: 'Published SAR imagery · SAR signal change is not verified flood detection.',
   };
   const result = state.result;
-  return <div className="stored-comparison">
+  const floating = result?.id === VERIFIED_SWIPE_ID && !result.synthetic;
+  return <div className={`stored-comparison${floating ? ' has-floating-console' : ''}`}>
     <div className="compare-status" role="status" aria-live="polite" data-kind={state.kind}>
       {state.result?.synthetic ? 'MOCK DATA · Connection test only. Not satellite imagery or a real model analysis.' : messages[state.kind] || messages.error}
       {state.kind !== 'loading' && <button className="stored-refresh" type="button" onClick={() => refresh()}>Refresh</button>}
     </div>
-    {result && <>
+    {result && !floating && <>
       <div className="compare-chooser">
         <label htmlFor="storedResultSelect">{result.synthetic ? 'Test bundle' : 'Published analysis'}</label>
         <select id="storedResultSelect" value={result.id} onChange={event => {
@@ -79,7 +86,7 @@ export function StoredComparison({ point }) {
         }}>
           {state.available.map(item => <option key={item.id} value={item.id}>{item.title} · {item.after.slice(0, 10)}</option>)}
         </select>
-        <div className="stored-mode" role="group" aria-label="After image view">
+        <div className="stored-mode" role="group" aria-label="Observation view">
           <button type="button" aria-pressed={!showChange} onClick={() => setShowChange(false)}>After</button>
           <button type="button" aria-pressed={showChange} onClick={() => setShowChange(true)}>Change image</button>
         </div>
@@ -90,13 +97,51 @@ export function StoredComparison({ point }) {
           const label = `${result.title} · ${imageKey} · ${result[side].observed_at.slice(0, 10)}`;
           return <article className="sar-photo-panel" key={side}>
             <div className="sar-photo-heading"><div><span className="sar-kicker">{imageKey === 'change_overlay' ? '02 / CHANGE IMAGE' : side === 'before' ? '01 / BEFORE' : '02 / AFTER'}</span>
-              <h3>{result[side].observed_at.slice(0, 10)}</h3></div><span className="sar-photo-pill">{result.synthetic ? 'MOCK DATA' : 'MODEL OUTPUT'}</span></div>
+              <h3>{result[side].observed_at.slice(0, 10)}</h3></div><span className="sar-photo-pill">{result.synthetic ? 'MOCK DATA' : imageKey === 'change_overlay' ? 'SAR CHANGE' : 'NISAR OBSERVATION'}</span></div>
             <StoredImage key={`${result.id}:${imageKey}:${revision}`} url={result.images[imageKey]} label={label} onFailure={() => refresh(true)} onExpand={setPreview} />
             <div className="sar-file-meta"><span title={result[side].source_scene_id}>{result[side].source_scene_id}</span><span>{result.model_version}</span></div>
           </article>;
         })}
       </div>
     </>}
+    {!result && <aside className="sar-swipe-dialog sar-floating-placeholder" aria-label="Observation availability" onKeyDown={event => {
+      if (event.key === 'Escape') { event.stopPropagation(); onClose?.(); }
+    }}>
+      <header className="sar-floating-placeholder-header">
+        <span className="sar-console-kicker">NISAR / OBSERVATION</span>
+        <button type="button" className="sar-swipe-close" aria-label="Close analysis" onClick={onClose}>✕</button>
+      </header>
+      <h2>Selected region</h2>
+      <p className="sar-floating-coordinates">{point.lat.toFixed(4)}°, {point.lng.toFixed(4)}°</p>
+      <div className="sar-floating-availability" role="status" aria-live="polite" data-kind={state.kind}>
+        {messages[state.kind] || messages.error}
+      </div>
+      {state.kind !== 'loading' && <button type="button" className="sar-retry" onClick={() => refresh()}>Refresh availability</button>}
+    </aside>}
+    {floating && (
+      <aside
+        className="sar-swipe-dialog"
+        aria-labelledby="sar-swipe-title"
+        onKeyDown={event => {
+          if (event.key === 'Escape') { event.stopPropagation(); onClose?.(); }
+        }}
+      >
+        <SarSwipeComparison
+          key={`${result.id}:${revision}:${result.images.before}`}
+          title="Sacramento Delta"
+          point={point}
+          serviceState={state.kind}
+          onRefresh={() => refresh()}
+          beforeUrl={result.images.before}
+          afterUrl={result.images.after}
+          changeUrl={result.images.change_overlay}
+          beforeDate={result.before.observed_at.slice(0, 10)}
+          afterDate={result.after.observed_at.slice(0, 10)}
+          onImageFailure={() => refresh(true)}
+          onClose={onClose}
+        />
+      </aside>
+    )}
     <dialog ref={dialog} className="observation-dialog" onClose={() => setPreview(null)} aria-labelledby="stored-preview-title">
       <header><h2 id="stored-preview-title">{preview?.title}</h2><button className="btn btn-outline" type="button" onClick={() => dialog.current.close()}>Close image</button></header>
       {preview && <img src={preview.url} alt={preview.title} />}
