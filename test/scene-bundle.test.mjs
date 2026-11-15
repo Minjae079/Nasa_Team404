@@ -102,7 +102,8 @@ test('mock bundles require explicit publication opt-in and remain hidden from no
   assert.equal(visible.result.synthetic,true);
   assert.equal(Object.keys(visible.result.images).length,3);
   await publishSceneBundle(s.client,metadata,images);
-  const real = await (await getSceneResults(query,s.client,{allowMock:false})).json();
+  const explorerQuery = new Request(query.url + '&includeMock=false');
+  const real = await (await getSceneResults(explorerQuery,s.client,{allowMock:true})).json();
   assert.equal(real.result.id,metadata.id);
   assert.equal(real.available.length,1);
   assert.equal(JSON.parse(s.files.get(SCENE_INDEX)).results.length,1);

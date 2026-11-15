@@ -119,3 +119,61 @@ button:disabled { opacity: .5; transform: none; }
 
 .topbar .team-label { display: inline; color: #c4d3d7; font-size: 11px; }
 @media (max-width: 800px) { .topbar .team-label { font-size: 9px; letter-spacing: .08em; } }
+
+.about-modal.observation-guide {
+  width: min(680px, 100%);
+  padding: clamp(20px, 4vw, 36px);
+  border-radius: 14px;
+  background: #0e1b23;
+}
+.observation-guide h2 {
+  margin: 0 48px 8px 0;
+  font-size: clamp(28px, 4vw, 38px);
+}
+.observation-guide #guide-intro { margin: 0 0 15px; }
+.guide-modes { margin: 0; border-top: 1px solid #31444d; }
+.guide-modes > div {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 6px 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #31444d;
+}
+.guide-modes dt { color: #eaf3ee; font-size: 13px; font-weight: 650; }
+.guide-modes dd,
+.observation-guide .guide-context,
+.guide-model p { margin: 0; color: #adbec5; font-size: 13px; line-height: 1.55; }
+.observation-guide .guide-context { margin: 12px 0 0; }
+.guide-model {
+  margin: 16px 0 18px;
+  padding-top: 12px;
+  border-top: 1px solid #31444d;
+}
+.guide-model h3 { margin: 0 0 5px; color: #eaf3ee; font-size: 14px; }
+.guide-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+.guide-legend li { display: flex; align-items: center; gap: 6px; color: #dce9ec; font-size: 11px; }
+.guide-legend li::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--guide-level, #f3f6fb);
+  content: "";
+}
+.guide-legend [data-level="1"] { --guide-level: #37dc74; }
+.guide-legend [data-level="2"] { --guide-level: #ff9d32; }
+.guide-legend [data-level="3"] { --guide-level: #ff4944; }
+.guide-footer { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 9px 16px; }
+.guide-connection { color: #a7bac1; font-size: 12px; }
+.guide-connection summary { cursor: pointer; }
+.guide-connection p { margin: 6px 0; }
+.guide-footer #startExplore { min-height: 38px; }
+@media (max-width: 520px) {
+  .guide-modes > div { grid-template-columns: 1fr; gap: 3px; }
+}

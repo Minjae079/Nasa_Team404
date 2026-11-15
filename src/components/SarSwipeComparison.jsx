@@ -6,6 +6,7 @@ const clamp = value => Math.max(0, Math.min(100, value));
 
 export function SarSwipeComparison({
   sceneId,
+  sceneSelector,
   title,
   point,
   serviceState,
@@ -103,9 +104,8 @@ export function SarSwipeComparison({
   }
 
   const aiReady = Boolean(sizes.ai && !aiFailed);
-  const displayed = mode === 'ai' && aiReady ? sizes.ai : before;
-  const aspectRatio = displayed ? `${displayed.width} / ${displayed.height}` : '1828 / 2048';
-  const imageAspect = displayed ? displayed.width / displayed.height : 1828 / 2048;
+  const aspectRatio = before ? `${before.width} / ${before.height}` : '1828 / 2048';
+  const imageAspect = before ? before.width / before.height : 1828 / 2048;
 
   return (
     <div className="sar-swipe-viewer">
@@ -121,11 +121,12 @@ export function SarSwipeComparison({
       </header>
       <div className="sar-console-body">
       <section className="sar-console-imagery" aria-label="Satellite imagery">
-        <div className="sar-console-toolbar">
+        {sceneSelector}
+      <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
-            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Flood candidates</button>}
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Possible flooding</button>}
           </div>
           <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
@@ -145,7 +146,7 @@ export function SarSwipeComparison({
             onPointerUp={pointerEnd}
             onPointerCancel={pointerEnd}
             onLostPointerCapture={() => { activePointer.current = null; }}
-            aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Experimental AI flood candidates' : 'SAR backscatter change'}
+            aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Possible flooding shown by the model' : 'SAR backscatter change'}
           >
             <img
               className="sar-swipe-image"
@@ -184,13 +185,13 @@ export function SarSwipeComparison({
               <div className="sar-ai-layer sar-imagery-layer" data-visible={mode === 'ai' && aiReady}
                 aria-hidden={mode !== 'ai' || !aiReady}>
                 <img key={aiAttempt} className="sar-swipe-image" src={aiUrl}
-                  alt="Blue experimental V1-long flood candidates over the later NISAR observation"
+                  alt="Possible flooding shown in blue over the later NISAR observation"
                   draggable={false} onLoad={event => handleLoad('ai', event)}
                   onError={() => setAiFailed(true)} />
               </div>
             )}
             {mode === 'ai' && !aiReady && <div className="sar-swipe-notice" role="status">
-              {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
+              {aiFailed ? 'Possible flooding layer unavailable.' : 'Loading possible flooding layer…'}
             </div>}
             {ready && mode === 'swipe' && (
               <div
@@ -223,9 +224,8 @@ export function SarSwipeComparison({
           </div>
         </div>
       </div>
-      {mode === 'ai' && <p className="sar-ai-caption"><span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.</p>}
       </div>
-      <ObservationInsights sceneId={sceneId} />
+      <ObservationInsights sceneId={sceneId} scenarioMetrics={monitoringSite?.scenarioMetrics} />
       </div>
 
       {(failed || mismatch || overlayFailed || overlayMismatch || serviceState === 'error' || serviceState === 'setup') && <button className="sar-retry" type="button" onClick={onRefresh}>Retry images</button>}

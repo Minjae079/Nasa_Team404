@@ -4,20 +4,20 @@ import { createPortal } from 'react-dom';
 import { fetchJson } from '../lib/api.js';
 
 // Regional observations shown in the analysis panel.
-const pendingContext = [
+const insightItems = [
   {
     key: 'rainfall',
-    label: 'Rainfall',
+    label: '7-day rainfall',
     description: 'Satellite-estimated precipitation'
   },
   {
     key: 'waterHistory',
-    label: 'Water History',
+    label: 'How often water was observed',
     description: 'Historical surface water occurrence'
   },
   {
     key: 'relativeElevation',
-    label: 'Relative Elevation',
+    label: 'Elevation vs. nearby terrain',
     description: 'Elevation relative to nearby terrain'
   },
 ];
@@ -30,7 +30,7 @@ export function ObservationContext({
   context = {}
 }) {
   const observations = [
-    ['Satellite', 'NASA–ISRO NISAR'],
+    ['Satellite', 'NISAR'],
     ['Product', 'L2 GCOV'],
     ['Band / Polarization', 'L-band / HH'],
     ['Frame', '069'],
@@ -58,7 +58,7 @@ export function ObservationContext({
       <section className="sar-regional-context">
         <h3>Regional context</h3>
 
-        {pendingContext.map(field => (
+        {insightItems.map(field => (
           <article className="sar-context-card" key={field.key}>
             <h4>{field.label}</h4>
             <p>{field.description}</p>
@@ -80,22 +80,6 @@ export function ObservationContext({
     </aside>
   );
 }
-
-// Supported environmental indicators.
-const insightItems = [
-  {
-    key: 'rainfall',
-    label: 'Rainfall',
-  },
-  {
-    key: 'waterHistory',
-    label: 'Water history',
-  },
-  {
-    key: 'relativeElevation',
-    label: 'Elevation',
-  },
-];
 
 const EXPECTED_UNITS = {
   rainfall: 'mm',
@@ -194,6 +178,7 @@ function InsightSymbol({ kind }) {
 // Show descriptions only while the pointer is over an icon.
 export function InsightTrigger({
   text,
+  multiline = false,
   ariaLabel,
   className = '',
   level,
@@ -235,13 +220,14 @@ export function InsightTrigger({
             )
           );
 
+      const height = multiline ? 62 : 42;
       const desiredTop = external
-        ? anchor.top + anchor.height / 2 - 15
-        : anchor.top - 38;
+        ? anchor.top + (anchor.height - height) / 2
+        : anchor.top - height - 8;
 
       const top = Math.max(
         12,
-        Math.min(desiredTop, window.innerHeight - 42)
+        Math.min(desiredTop, window.innerHeight - height - 12)
       );
 
       setPosition({ left, top, maxWidth: width });
@@ -265,7 +251,7 @@ export function InsightTrigger({
       window.removeEventListener('scroll', place, true);
       document.removeEventListener('keydown', escape);
     };
-  }, [visible]);
+  }, [visible, multiline]);
 
   return (
     <>
@@ -304,13 +290,14 @@ export function InsightTrigger({
 }
 
 // Live regional context from the scene-context API.
-export function ObservationInsights({ sceneId }) {
+export function ObservationInsights({ sceneId, scenarioMetrics }) {
   const [context, setContext] = useState({
     state: 'loading',
     metrics: {}
   });
 
   useEffect(() => {
+    if (scenarioMetrics) return;
     if (!sceneId) {
       setContext({
         state: 'empty',
@@ -359,7 +346,7 @@ export function ObservationInsights({ sceneId }) {
     // Cancel stale requests when the scene changes
     // or the panel is unmounted.
     return () => controller.abort();
-  }, [sceneId]);
+  }, [sceneId, scenarioMetrics]);
 
   return (
     <aside
@@ -367,7 +354,9 @@ export function ObservationInsights({ sceneId }) {
       aria-label="Regional context insights"
     >
       {insightItems.map(item => {
-        const metric = context.metrics[item.key];
+        const metric = scenarioMetrics
+          ? { status: 'available', value: scenarioMetrics[item.key], unit: EXPECTED_UNITS[item.key] }
+          : context.metrics[item.key];
         const value = formatMetric(item.key, metric);
 
         const summary = value ?? (context.state === 'loading' ? 'Loading…' : 'Unavailable');
@@ -379,7 +368,13 @@ export function ObservationInsights({ sceneId }) {
             key={item.key}
           >
             <InsightTrigger
-              text={text}
+              multiline
+              text={
+                <span className="sar-context-tooltip">
+                  <span>{item.label}</span>
+                  <span className="sar-insight-value">{summary}</span>
+                </span>
+              }
               ariaLabel={text}
               level={value !== null ? indicatorLevel(item.key, metric.value) : 0}
             >

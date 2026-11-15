@@ -43,12 +43,13 @@ test('React shell, Vite HTTP assets and API adapter work without exposing env fi
 
     const { App } = await server.ssrLoadModule('/src/App.jsx');
     const markup = renderToString(createElement(App));
-    for (const id of ['globeViz', 'globeScene', 'compareScene', 'mapScene', 'aboutModal',
-      'loadModelResults', 'checkDatabase', 'zoomInGlobe', 'beforeImage', 'afterImage']) {
+    for (const id of ['globeViz', 'globeScene', 'compareScene', 'aboutModal',
+      'checkDatabase', 'zoomInGlobe', 'exploreChicago']) {
       assert.ok(markup.includes(`id="${id}"`), id);
     }
-    assert.ok(markup.indexOf('id="compareScene"') < markup.indexOf('id="mapScene"'));
-    assert.ok(markup.includes('View model results'));
+    for (const id of ['mapScene', 'loadModelResults', 'beforeImage', 'afterImage']) {
+      assert.ok(!markup.includes(`id="${id}"`), id);
+    }
     assert.ok(!markup.includes('id="model-results-title"'));
     assert.ok(markup.includes('TEAM 404'));
   } finally {

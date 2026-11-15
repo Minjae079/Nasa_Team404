@@ -3,7 +3,7 @@ function globeLocatorRing({ lat, lng }) {
   // Sample a circle at a constant angular distance along the Earth's surface.
   const radians = Math.PI / 180;
   const latitude = lat * radians;
-  const radius = 3.5 * radians;
+  const radius = 1.8 * radians;
   const segments = 64;
   const coordinates = Array.from({ length: segments }, (_, index) => {
     const bearing = index * 2 * Math.PI / segments;
@@ -28,6 +28,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   };
   const INTRO_DURATION_MS = 2800;
   const ROTATION_RATE = .006;
+  const rotationSpeedAt = zoom => ROTATION_RATE * 2 ** Math.min(0, START.zoom - zoom);
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.1;
@@ -43,6 +44,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const listeners = [];
   let disposed = false;
   function listen(target, event, handler, options) {
+    if (!target) return;
     target.addEventListener(event, handler, options);
     listeners.push(() => target.removeEventListener(event, handler, options));
   }
@@ -73,9 +75,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   let globeGestureActive = false;
   let resumeAfterInteraction = false;
   let rotationResumeTimer;
+  let rotationResumesAfterZoom = false;
+  let lastZoomRotationTime = null;
+  let zoomRotationOffset = 0;
   function stopGlobeMotion() {
     clearTimeout(rotationResumeTimer);
     resumeAfterInteraction = false;
+    rotationResumesAfterZoom = false;
     homeMotionPending = false;
     introActive = false;
     if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
@@ -88,20 +94,22 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationResumeTimer = setTimeout(() => {
       if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
       resumeAfterInteraction = false;
-      startGlobeRotation();
-    }, 450);
+      if (rotationResumesAfterZoom) previousRotationTime = performance.now();
+      startGlobeRotation({ rampMs: rotationResumesAfterZoom ? 0 : 400 });
+      rotationResumesAfterZoom = false;
+    }, rotationResumesAfterZoom ? 0 : 450);
   }
-  function startGlobeRotation({ intro = false } = {}) {
+  function startGlobeRotation({ intro = false, rampMs = 400 } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
     introActive = intro;
     let introElapsed = 0;
-    let rotationElapsed = intro ? 400 : 0;
+    let rotationElapsed = intro ? rampMs : 0;
     function rotate(time) {
       rotationFrame = null;
       if (disposed || reducedMotion.matches || mode !== "globe") return;
       const elapsed = previousRotationTime === null ? 0 : Math.min(time - previousRotationTime, 64);
       previousRotationTime = time;
-      if (!document.hidden) {
+      if (!document.hidden && (introActive || !map.isMoving?.())) {
         let camera;
         if (introActive) {
           introElapsed += elapsed;
@@ -127,7 +135,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else {
           const { lng, lat } = map.getCenter();
           rotationElapsed += elapsed;
-          const speed = ROTATION_RATE * Math.min(rotationElapsed / 400, 1);
+          const speed = rotationSpeedAt(map.getZoom()) * (rampMs > 0 ? Math.min(rotationElapsed / rampMs, 1) : 1);
           camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
@@ -138,19 +146,57 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationFrame = window.requestAnimationFrame(rotate);
   }
 
-  const highRiskAreas = {
-    type: 'FeatureCollection',
-    features: monitoringSites.filter(site => site.level === 3).flatMap(site => {
-      const locator = { type: 'Feature', properties: {}, geometry: globeLocatorRing(site) };
-      if (!site.bounds) return [locator];
-      const [west, south, east, north] = site.bounds;
-      return [locator, {
-        type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
-          [west, south], [east, south], [east, north], [west, north], [west, south],
-        ]] },
-      }];
-    }),
-  };
+  const hasOverviewOffsets = monitoringSites.some(site => site.overviewOffset);
+  let overviewSpread = 1;
+  function markerLocation(site) {
+    if (!site.overviewOffset) return site.worldPin ?? site;
+    return {
+      lat: site.lat + site.overviewOffset.lat * overviewSpread,
+      lng: site.lng + site.overviewOffset.lng * overviewSpread,
+    };
+  }
+  function monitoringAreas() {
+    return {
+      type: 'FeatureCollection',
+      features: monitoringSites.flatMap(site => {
+        const level = site.worldPin ? 0 : site.level ?? 0;
+        const locator = { type: 'Feature', properties: { level }, geometry: globeLocatorRing(markerLocation(site)) };
+        if (level !== 3 || !site.bounds) return [locator];
+        const [west, south, east, north] = site.bounds;
+        return [locator, {
+          type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+            [west, south], [east, south], [east, north], [west, north], [west, south],
+          ]] },
+        }];
+      }),
+    };
+  }
+  function updateOverviewSpread() {
+    if (!monitoringVisible || !hasOverviewOffsets) return;
+    // Update the rings at discrete zoom intervals to avoid rebuilding their data every frame.
+    const spread = Math.round(Math.max(0, Math.min(1, (3.5 - map.getZoom()) / 1.4)) * 12) / 12;
+    if (spread === overviewSpread) return;
+    overviewSpread = spread;
+    for (const { site, pin } of monitoringPins) {
+      if (!site.overviewOffset) continue;
+      const { lng, lat } = markerLocation(site);
+      pin.setLngLat([lng, lat]);
+    }
+    map.getSource?.('monitoring-areas')?.setData(monitoringAreas());
+  }
+
+  function rotateDuringZoom({ center, zoom }) {
+    if (!map || mode !== "globe" || introActive || document.hidden || reducedMotion.matches) return {};
+    if (!map.isZooming?.() && zoom === map.getZoom()) return {};
+    // Use the proposed camera so the native zoom keeps its timing and focal point.
+    // A separate jumpTo here would cancel the zoom on each animation frame.
+    const now = performance.now();
+    if (lastZoomRotationTime !== null) {
+      zoomRotationOffset += Math.min(now - lastZoomRotationTime, 64) * rotationSpeedAt(zoom);
+    }
+    lastZoomRotationTime = now;
+    return { center: new maplibregl.LngLat(center.lng - zoomRotationOffset, center.lat) };
+  }
 
   // A single MapLibre canvas renders the globe and local map.
   function initGlobe() {
@@ -158,11 +204,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     try {
       map = new maplibregl.Map({
         container: "globeViz", ...START, ...(reducedMotion.matches ? { zoom: homeZoom() } : INTRO_CAMERA), minZoom: INTRO_ZOOM, maxZoom: 19,
-        attributionControl: { compact: true }, doubleClickZoom: false,
+        attributionControl: { compact: true }, doubleClickZoom: false, transformCameraUpdate: rotateDuringZoom,
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
-            "high-risk-areas": { type: "geojson", data: highRiskAreas, tolerance: 0.15 },
+            "monitoring-areas": { type: "geojson", data: monitoringAreas(), tolerance: 0.15 },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -184,16 +230,18 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
             } },
             { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
             {
-              id: "high-risk-observation-outline", type: "line", source: "high-risk-areas",
+              id: "high-risk-observation-outline", type: "line", source: "monitoring-areas",
               filter: ["==", ["geometry-type"], "Polygon"],
               paint: { "line-color": "#ff5657", "line-width": 2.5,
                 "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
             {
-              id: "high-risk-location-halo", type: "line", source: "high-risk-areas",
+              id: "monitoring-location-ring", type: "line", source: "monitoring-areas",
               filter: ["==", ["geometry-type"], "LineString"],
               layout: { "line-join": "round" },
-              paint: { "line-color": "#ff5657", "line-width": 2.5,
+              paint: {
+                "line-color": ["match", ["get", "level"], 1, "#37dc74", 2, "#ff9d32", 3, "#ff4944", "#f3f6fb"],
+                "line-width": ["match", ["get", "level"], 3, 2.5, 1.75],
                 "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
           ],
@@ -204,21 +252,28 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       syncMapFrame();
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
       // No second renderer, tile cache reset, delayed swap or click is needed.
+      let skyWasZooming = false;
       function syncSkyCamera() {
+        skyWasZooming = map.isZooming?.() ?? false;
         onCamera?.({ lng: map.getCenter().lng, lat: map.getCenter().lat,
-          bearing: map.getBearing(), pitch: map.getPitch(),
+          bearing: map.getBearing(), pitch: map.getPitch(), zooming: skyWasZooming,
           offsetX: ((map.getPadding?.().left || 0) - (map.getPadding?.().right || 0)) / 2,
           offsetY: ((map.getPadding?.().top || 0) - (map.getPadding?.().bottom || 0)) / 2 });
       }
       map.on("move", syncSkyCamera);
       syncSkyCamera();
-      map.on("zoom", syncZoomMode);
+      map.on("zoom", () => {
+        syncZoomMode();
+        updateOverviewSpread();
+        if (resumeAfterInteraction) rotationResumesAfterZoom = true;
+      });
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
         map.on(eventName, () => {
           motionInterrupted = true;
           const interruptIntro = homeMotionPending || introActive;
           stopGlobeMotion();
           globeGestureActive ||= eventName !== "wheel";
+          rotationResumesAfterZoom = eventName === "wheel";
           resumeAfterInteraction = mode === "globe";
           if (interruptIntro) map.stop();
           queueGlobeRotation();
@@ -240,7 +295,10 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         }
       });
       map.on("moveend", () => {
+        lastZoomRotationTime = null;
+        zoomRotationOffset = 0;
         if (updatingMapFrame) return;
+        if (skyWasZooming) syncSkyCamera();
         cameraDestination = null;
         syncZoomMode();
         if (motionInterrupted && !introActive) revealMonitoring();
@@ -258,7 +316,16 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           selectedLocation = true;
           showSelectionMarker(lat, lng);
           updateLocationPanel();
-        } else flyTo(lat, lng);
+        } else {
+          // Keep background double-clicks in the current view.
+          const limit = onSelection ? map.getMaxZoom?.() ?? 19 : DETAIL_ZOOM - 0.1;
+          const zoom = Math.max(map.getZoom(), Math.min(map.getZoom() + 1, limit));
+          motionInterrupted = true;
+          stopGlobeMotion();
+          resumeAfterInteraction = mode === "globe";
+          rotationResumesAfterZoom = true;
+          moveSceneCamera({ center: [lng, lat], zoom });
+        }
       });
       map.on("load", () => {
         mapLoaded = true;
@@ -288,21 +355,22 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   function revealMonitoring() {
     if (disposed || !map || !mapLoaded || monitoringVisible) return;
     monitoringVisible = true;
-    if (highRiskAreas.features.length) {
+    if (monitoringSites.length) {
       map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
-      map.setPaintProperty("high-risk-location-halo", "line-opacity",
+      map.setPaintProperty("monitoring-location-ring", "line-opacity",
         ["interpolate", ["linear"], ["zoom"], 3, 1, 4.5, 0]);
     }
     for (const site of monitoringSites) {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'monitoring-site-pin';
-      element.setAttribute('aria-label', site.level === 3
-        ? `High screening level. Open NISAR observations for ${site.title}`
-        : `Open NISAR observations for ${site.title}`);
-      element.dataset.level = String(site.level ?? 0);
+      const location = markerLocation(site);
+      const level = site.worldPin ? 0 : site.level ?? 0;
+      const label = site.worldPin ? 'Observation shortcut' : level === 3 ? 'High flood signal' : 'NISAR observation';
+      element.setAttribute('aria-label', `${label}. Open NISAR observations for ${site.title}`);
+      element.dataset.level = String(level);
       element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
-      if (site.level === 3) {
+      if (level === 3) {
         element.innerHTML += '<span class="monitoring-pin-warning" aria-hidden="true">!</span>';
       }
       listen(element, 'pointerdown', event => {
@@ -318,17 +386,19 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         event.stopPropagation();
         if (element.classList.contains('maplibregl-marker-covered')) return;
         setBasemap('satellite');
-        flyTo(site.lat, site.lng);
+        flyTo(site.lat, site.lng, site);
       });
       listen(element, 'dblclick', event => event.stopPropagation());
-      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
-        .setLngLat([site.lng, site.lat]).addTo(map));
+      const pin = new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
+        .setLngLat([location.lng, location.lat]).addTo(map);
+      monitoringPins.push({ site, pin });
     }
+    updateOverviewSpread();
   }
 
   function showSelectionMarker(lat, lng) {
     if (!map) return;
-    if (monitoringSites.some(site => site.lat === lat && site.lng === lng)) {
+    if (monitoringSites.some(site => !site.worldPin && site.lat === lat && site.lng === lng)) {
       marker?.remove();
       return;
     }
@@ -418,7 +488,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   }
   // 수정된 부분: zoom changes only UI overlays; the underlying map stays mounted.
   function syncZoomMode() {
-    if (updatingMapFrame || !map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
+    if (onSelection || updatingMapFrame || !map || (cameraDestination !== null && cameraDestination < DETAIL_ZOOM)) return;
     if (map.getZoom() >= DETAIL_ZOOM && mode !== "map") {
       comparisonRequestId++;
       mode = "map";
@@ -435,7 +505,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       mode = "globe";
       setHomePresentation(true);
       syncMapFrame();
-      mapScene.hidden = true;
+      if (mapScene) mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
       refreshRasterLayers(false);
       resumeAfterInteraction = true;
@@ -447,16 +517,17 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     stopGlobeMotion();
     cameraDestination = null;
     resumeAfterInteraction = mode === "globe";
+    rotationResumesAfterZoom = true;
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
     queueGlobeRotation();
   }
-  function flyTo(lat, lng) {
+  function flyTo(lat, lng, site) {
     motionInterrupted = true;
     stopGlobeMotion();
     cameraDestination = PHOTO_ZOOM;
     selectedLocation = true;
     // 수정된 부분: search starts immediately, independently of camera animation.
-    openComparison(lat, lng);
+    openComparison(lat, lng, site);
   }
   function goHome() {
     // Home always shows the natural Earth imagery, regardless of local-map choice.
@@ -474,7 +545,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     globeScene.hidden = false;
     globeScene.classList.remove("is-comparing", "is-detail");
     compareScene.hidden = true;
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     refreshRasterLayers(false);
     homeMotionPending = !reducedMotion.matches;
     moveSceneCamera({ ...START, zoom: homeZoom() });
@@ -485,7 +556,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     cameraDestination = PHOTO_ZOOM;
     const { lat, lng } = currentTarget;
     globeScene.classList.remove("is-detail");
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     const reuse = lastComparedPoint && Math.abs(lastComparedPoint.lat - lat) < 0.000001 &&
       Math.abs(lastComparedPoint.lng - lng) < 0.000001 && comparisonPairs.length;
     if (reuse) {
@@ -498,6 +569,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     refreshRasterLayers(false);
   }
   function openMap(lat, lng) {
+    if (onSelection) return;
     motionInterrupted = true;
     stopGlobeMotion();
     onSelection?.(null);
@@ -613,7 +685,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   }
 
   // 수정된 부분: clear stale results before searching and save the location only on success.
-  async function openComparison(lat, lng) {
+  async function openComparison(lat, lng, site) {
     lastComparedPoint = null;
     comparisonPairs = [];
     const requestId = ++comparisonRequestId;
@@ -630,22 +702,24 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         : "Selected Earth region",
     };
     // Create a pin only after an explicit location selection.
-    showSelectionMarker(lat, lng);
+    if (site) marker?.remove();
+    else showSelectionMarker(lat, lng);
     globeScene.hidden = false;
     globeScene.classList.remove("is-detail");
     globeScene.classList.add("is-comparing");
-    moveSceneCamera({ center: [lng, lat], zoom: PHOTO_ZOOM });
+    const cameraPoint = site?.worldPin ?? { lat, lng };
+    moveSceneCamera({ center: [cameraPoint.lng, cameraPoint.lat], zoom: PHOTO_ZOOM });
     refreshRasterLayers(false);
-    mapScene.hidden = true;
+    if (mapScene) mapScene.hidden = true;
     compareScene.hidden = false;
+    if (onSelection) {
+      onSelection(site ? { lat, lng, siteId: site.id } : { lat, lng });
+      return;
+    }
     $("compareRegion").textContent = currentTarget.name;
     $("compareCoordinates").textContent = coordLabel(lat, lng);
     $("sarCompareGrid").hidden = true;
     $("pairChooser").hidden = true;
-    if (onSelection) {
-      onSelection({ lat, lng });
-      return;
-    }
     updateComparisonStatus(
       "Searching NASA ASF catalog for matched NISAR GCOV acquisitions…"
     );
@@ -668,7 +742,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           ? " Search service was also unavailable."
           : "";
         updateComparisonStatus(
-          `No two matching NISAR GCOV dates found at this location.${detail} Select another location or try Illinois Tech.`,
+          `No two matching NISAR GCOV dates found at this location.${detail} Select another location or try Chicago.`,
           "empty"
         );
         return;
@@ -712,8 +786,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     map.setLayoutProperty("streets", "visibility", activeBasemap === "streets" ? "visible" : "none");
     if (map.getLayer("satellite")) map.setLayoutProperty("satellite", "visibility", activeBasemap === "streets" ? "none" : "visible");
     if (map.getLayer("earth")) map.setLayoutProperty("earth", "visibility", activeBasemap === "streets" ? "none" : "visible");
-    $("streetLayer").classList.toggle("is-selected", activeBasemap === "streets");
-    $("satelliteLayer").classList.toggle("is-selected", activeBasemap === "satellite");
+    $("streetLayer")?.classList.toggle("is-selected", activeBasemap === "streets");
+    $("satelliteLayer")?.classList.toggle("is-selected", activeBasemap === "satellite");
   }
   // 수정된 부분: optional prepared SAR images use MapLibre image sources.
   async function tryLoadSarLayers() {
@@ -799,9 +873,10 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     listen(document, "keydown", (event) => {
       if (event.key === "Escape") toggleModal(false);
     });
-    listen($("exploreIIT"), "click", () =>
-      flyTo(IIT.lat, IIT.lng, IIT.name)
-    );
+    listen($("exploreChicago"), "click", () => {
+      const chicago = monitoringSites.find(site => site.slug === "chicago") ?? IIT;
+      flyTo(chicago.lat, chicago.lng);
+    });
     listen($("jumpToIITFromMap"), "click", () =>
       openMap(IIT.lat, IIT.lng)
     );
@@ -822,16 +897,21 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     initGlobe();
     // No API keys, SAR claims or mock detection results are embedded in the demo.
     // Prepared overlays attach to the shared map after its style loads.
-    tryLoadSarLayers();
+    if (!onSelection) tryLoadSarLayers();
   }
   function selectCoordinates(lat, lng) {
     if (disposed || !map || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
     if (mode === "map") openMap(lat, lng);
-    else { setBasemap("satellite"); flyTo(lat, lng); }
+    else {
+      const shortcut = monitoringSites.find(site => site.worldPin?.lat === lat && site.worldPin?.lng === lng);
+      setBasemap("satellite");
+      flyTo(shortcut?.lat ?? lat, shortcut?.lng ?? lng, shortcut);
+    }
     return true;
   }
   return {
     start,
+    goHome,
     selectCoordinates,
     isReady: () => !!map && !disposed,
     destroy() {
@@ -840,7 +920,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
-      monitoringPins.splice(0).forEach(pin => pin.remove());
+      monitoringPins.splice(0).forEach(({ pin }) => pin.remove());
       if (map) map.remove();
       map = null;
     },

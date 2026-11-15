@@ -23,8 +23,14 @@ export function Starfield() {
     let camera = { lng: -68, lat: 34, bearing: 0, pitch: 0 };
     let frame = null;
     let width = 0, height = 0;
-    function draw() {
+    let lastDraw = -Infinity;
+    function draw(time) {
       frame = null;
+      if (camera.zooming && time - lastDraw < 1000 / 30) {
+        schedule();
+        return;
+      }
+      lastDraw = time;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const nextWidth = canvas.clientWidth, nextHeight = canvas.clientHeight;
       if (!nextWidth || !nextHeight) return;
@@ -60,7 +66,14 @@ export function Starfield() {
       }
     }
     function schedule() { frame ??= requestAnimationFrame(draw); }
-    function update(event) { camera = event.detail; schedule(); }
+    function update({ detail: next }) {
+      const changed = next.lng !== camera.lng || next.lat !== camera.lat ||
+        next.bearing !== camera.bearing || next.pitch !== camera.pitch ||
+        next.offsetX !== camera.offsetX || next.offsetY !== camera.offsetY;
+      camera = next;
+      // Zoom alone does not move the stars. Avoid repainting an identical sky.
+      if (changed) schedule();
+    }
     window.addEventListener('sarscope:camera', update);
     const observer = new ResizeObserver(schedule);
     observer.observe(canvas);
