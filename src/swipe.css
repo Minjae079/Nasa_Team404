@@ -357,22 +357,18 @@
   .scene-globe .sar-swipe-dialog .sar-console-toolbar { margin-bottom: 7px; }
 }
 
-/* Flood monitoring demo extends the existing comparison console. */
-.flood-demo-sites { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 15px 8px; }
-.flood-demo-sites button, .flood-demo-risk {
-  background: #152c38; color: #e2eaec; border: 1px solid #5b737c;
-  border-radius: 5px; padding: 5px 8px; cursor: pointer; font-size: .72rem;
-}
-.flood-demo-sites button[aria-pressed="true"] { color: #172b21; background: #c6eaa6; }
-.flood-demo-risk { border-color: currentColor; flex: 0 0 auto; }
-.flood-demo-risk[data-level="0"] { color: #fff; }
-.flood-demo-risk[data-level="1"] { color: #91e99e; }
-.flood-demo-risk[data-level="2"] { color: #ffc47d; }
-.flood-demo-risk[data-level="3"] { color: #ff9b94; }
-.flood-demo-context:empty { display: none; }
-.flood-demo-context dl { display: grid; gap: 7px; margin: 0; font-size: .7rem; }
-.flood-demo-context dd { margin: 1px 0 0; color: #e2eaec; }
-.flood-demo-context dt, .flood-demo-note { color: #a5b5bf; }
-.flood-demo-note { margin: 6px 0 0; font-size: .72rem; line-height: 1.3; }
-.flood-demo-note a { color: #c6eaa6; }
 .sar-view-ai { cursor: default; touch-action: auto; }
+.sar-ai-caption { margin: 5px 0 0; color: #a5b5bf; font-size: .68rem; }
+.monitoring-site-pin {
+  width: 15px; height: 15px; padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%; background: #f3f6fb; cursor: pointer;
+}
+.monitoring-site-pin.maplibregl-marker-covered { visibility: hidden; pointer-events: none; }
+.monitoring-site-pin[data-level='1'] { background: #8de399; }
+.monitoring-site-pin[data-level='2'] { background: #ffbb72; }
+.monitoring-site-pin[data-level='3'] { background: #ff8c83; }
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level='0'] { color: #f3f6fb; }
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level='1'] { color: #8de399; }
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level='2'] { color: #ffbb72; }
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level='3'] { color: #ff8c83; }

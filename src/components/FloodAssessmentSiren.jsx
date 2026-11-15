@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { fetchJson } from '../lib/api.js';
 
-export function FloodAssessmentSiren({ sceneId }) {
+export function FloodAssessmentSiren({ sceneId, monitoringSite }) {
   const [assessment, setAssessment] = useState({
     state: 'loading',
     area: null
@@ -108,6 +108,15 @@ export function FloodAssessmentSiren({ sceneId }) {
     detail = 'Public analysis is not enabled.';
   }
 
+  const level = monitoringSite?.level ?? 0;
+  if (monitoringSite) {
+    summary = `Screening: ${['Unassessed', 'Low', 'Elevated', 'High'][level]}`;
+    const signal = monitoringSite.candidateShare !== undefined
+      ? `V1-long candidate scores ≥ 0.50 on ${monitoringSite.candidateShare.toFixed(2)}% of valid pixels. `
+      : '';
+    detail = signal + 'Scenario screening level. Experimental, not an official flood warning.';
+  }
+
   const visible = hovered || focused || pinned;
 
   // Keep the existing floating-popover visual style.
@@ -187,6 +196,7 @@ export function FloodAssessmentSiren({ sceneId }) {
         ref={buttonRef}
         type="button"
         className="sar-insight-button sar-siren-button"
+        data-indicator-level={level}
         aria-label={`Flood assessment: ${summary}`}
         aria-describedby={visible ? tooltipId : undefined}
         aria-expanded={visible}

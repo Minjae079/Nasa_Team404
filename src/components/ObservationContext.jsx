@@ -133,6 +133,13 @@ function formatMetric(key, metric) {
   }
 }
 
+// Presentation bands for independent context indicators, not flood thresholds.
+function indicatorLevel(key, value) {
+  if (key === 'rainfall') return value < 10 ? 1 : value < 100 ? 2 : 3;
+  if (key === 'waterHistory') return value < 10 ? 1 : value < 30 ? 2 : 3;
+  return value >= -0.5 ? 1 : value >= -1 ? 2 : 3;
+}
+
 // Keep scientific interpretation distinct from flood assessment.
 function metricDescription(key) {
   switch (key) {
@@ -205,6 +212,7 @@ function InsightTrigger({
   summary,
   detail,
   className = '',
+  level,
   children
 }) {
   const buttonRef = useRef(null);
@@ -282,6 +290,7 @@ function InsightTrigger({
         type="button"
         className={`sar-insight-button ${className}`.trim()}
         aria-label={ariaLabel}
+        data-indicator-level={level}
         aria-describedby={visible ? tooltipId : undefined}
         aria-expanded={visible}
         onPointerEnter={event => {
@@ -415,7 +424,9 @@ export function ObservationInsights({ sceneId }) {
 
         if (value !== null) {
           summary = value;
-          detail = metricDescription(item.key);
+          detail = metric.source_name === 'SARscope manual entry'
+            ? `Manual context input. ${metricDescription(item.key)}`
+            : metricDescription(item.key);
         } else if (context.state === 'loading') {
           summary = 'Loading data…';
           detail = 'Retrieving regional environmental context.';
@@ -437,6 +448,7 @@ export function ObservationInsights({ sceneId }) {
               ariaLabel={`${item.label}: ${summary}`}
               summary={summary}
               detail={detail}
+              level={value !== null ? indicatorLevel(item.key, metric.value) : 0}
             >
               <InsightSymbol kind={item.key} />
             </InsightTrigger>

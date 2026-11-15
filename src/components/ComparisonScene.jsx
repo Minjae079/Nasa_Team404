@@ -1,11 +1,8 @@
-import { floodDemoSiteAt } from '../lib/floodDemo.js';
-import { FloodDemoComparison } from './FloodDemoComparison.jsx';
 import { StoredComparison } from './StoredComparison.jsx';
 import { useEffect, useRef, useState } from 'react';
 
 
-export function ComparisonScene({ point, floodDemo, onChooseDemo }) {
-  const demoSite = floodDemo ? floodDemoSiteAt(point) : null;
+export function ComparisonScene({ point }) {
   const [preview, setPreview] = useState(null);
   const dialog = useRef(null);
   const closeButton = useRef(null);
@@ -51,9 +48,7 @@ export function ComparisonScene({ point, floodDemo, onChooseDemo }) {
         <div className="compare-footer-note" id="compareFootnote">
           <strong>Scientific note</strong> These are ASF full-scene browse images, not necessarily cropped to the clicked point or perfectly pixel-aligned. Image differences alone are not validated land-surface changes. For measurement, use co-registered GCOV numeric data and quality masks.
         </div>
-        {demoSite
-          ? <FloodDemoComparison site={demoSite} point={point} onChoose={onChooseDemo} onClose={() => closeButton.current?.click()} />
-          : point && <StoredComparison key={`${point.lat}:${point.lng}`} point={point} onClose={() => closeButton.current?.click()} />}
+        {point && <StoredComparison key={`${point.lat}:${point.lng}`} point={point} onClose={() => closeButton.current?.click()} />}
         <dialog ref={dialog} className="observation-dialog" onClose={() => setPreview(null)} aria-labelledby="observation-title">
           <header><div><span className="section-tag">NASA SAR · BROWSE PREVIEW</span><h2 id="observation-title">{preview?.title}</h2></div>
             <button className="btn btn-outline" type="button" onClick={() => dialog.current.close()}>✕ Close</button></header>

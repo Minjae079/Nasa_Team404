@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchJson } from '../lib/api.js';
+import { monitoringAssets, monitoringSiteAt } from '../lib/monitoringSites.js';
 import { SarSwipeComparison } from './SarSwipeComparison.jsx';
 
 const VERIFIED_SWIPE_ID = 'nisar-sacdelta-hh-20261015-20261027-001';
@@ -18,6 +19,7 @@ function StoredImage({ url, label, onFailure, onExpand }) {
 }
 
 export function StoredComparison({ point, onClose }) {
+  const site = monitoringSiteAt(point);
   const [state, setState] = useState({ kind: 'loading', result: null, available: [] });
   const [selectedId, setSelectedId] = useState('');
   const [revision, setRevision] = useState(0);
@@ -71,8 +73,10 @@ export function StoredComparison({ point, onClose }) {
     error: 'Unable to load stored results. Please try again.',
     ready: 'Published SAR imagery · SAR signal change is not verified flood detection.',
   };
-  const result = state.result;
-  const floating = result?.id === VERIFIED_SWIPE_ID && !result.synthetic;
+  const usePackaged = site && !state.result && ['empty', 'disabled', 'setup', 'error'].includes(state.kind);
+  const result = state.result ?? (usePackaged ? { ...site, images: monitoringAssets(site) } : null);
+  const matchedSite = site?.id === result?.id ? site : null;
+  const floating = result && !result.synthetic && (matchedSite || result.id === VERIFIED_SWIPE_ID);
   return <div className={`stored-comparison${floating ? ' has-floating-console' : ''}`}>
     <div className="compare-status" role="status" aria-live="polite" data-kind={state.kind}>
       {state.result?.synthetic ? 'MOCK DATA · Connection test only. Not satellite imagery or a real model analysis.' : messages[state.kind] || messages.error}
@@ -129,13 +133,15 @@ export function StoredComparison({ point, onClose }) {
         <SarSwipeComparison
           sceneId={result.id}
           key={`${result.id}:${revision}:${result.images.before}`}
-          title="Sacramento Delta"
+          title={matchedSite?.title ?? 'Sacramento Delta'}
           point={point}
-          serviceState={state.kind}
+          serviceState={usePackaged ? 'ready' : state.kind}
           onRefresh={() => refresh()}
           beforeUrl={result.images.before}
           afterUrl={result.images.after}
           changeUrl={result.images.change_overlay}
+          aiUrl={matchedSite ? monitoringAssets(matchedSite).ai : null}
+          monitoringSite={matchedSite}
           beforeDate={result.before.observed_at.slice(0, 10)}
           afterDate={result.after.observed_at.slice(0, 10)}
           onImageFailure={() => refresh(true)}

@@ -1,9 +1,8 @@
-import { floodDemoSites } from '../lib/floodDemo.js';
 import { CoordinateSearch } from './CoordinateSearch.jsx';
 import { Starfield } from './Starfield.jsx';
 import { ComparisonScene } from './ComparisonScene.jsx';
 
-export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSelectCoordinates, floodDemo, onChooseDemo }) {
+export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSelectCoordinates }) {
   return (<section id="globeScene" className="scene scene-globe" aria-label="Interactive 3D Earth">
         <Starfield />
         <CoordinateSearch ready={mapReady} onSelect={onSelectCoordinates} />
@@ -23,11 +22,7 @@ export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSele
           <div className="hero-actions">
             <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>
-          <button className="hero-results-link" type="button" onClick={onOpenModelResults}>View model results <span aria-hidden="true">↗</span></button>
-            {floodDemo
-              ? <button className="hero-results-link" type="button" onClick={() => onChooseDemo(floodDemoSites[0])}>Flood monitoring demo ↗</button>
-              : <a className="hero-results-link" href="?demo=flood">Flood monitoring demo ↗</a>}
-          </div>
+          <button className="hero-results-link" type="button" onClick={onOpenModelResults}>View model results <span aria-hidden="true">↗</span></button></div>
           <div className="hero-meta">
             <div><span className="meta-label">PRIMARY STUDY AREA</span><span className="meta-value">Chicago, Illinois <span className="meta-arrow">↗</span></span></div>
             <div><span className="meta-label">SATELLITE PROGRAM</span><span className="meta-value">NASA–ISRO NISAR</span></div>
@@ -46,5 +41,5 @@ export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSele
         <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> DOUBLE-CLICK TO EXPLORE</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · DOUBLE-TAP</span></div>
         <div id="mapLoadStatus" className="map-load-status" role="status" hidden></div>
         <div className="globe-bottom-right"><span className="square-marker"></span> 3D WORLD VIEW <span className="guide-split">·</span> EXPERIMENTAL</div>
-      <ComparisonScene point={selectedPoint} floodDemo={floodDemo} onChooseDemo={onChooseDemo} /></section>);
+      <ComparisonScene point={selectedPoint} /></section>);
 }

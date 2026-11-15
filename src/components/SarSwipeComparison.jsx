@@ -12,8 +12,7 @@ export function SarSwipeComparison({
   onRefresh,
   changeUrl,
   aiUrl,
-  demo,
-  siteSelector,
+  monitoringSite,
   onClose,
   beforeUrl,
   afterUrl,
@@ -22,9 +21,8 @@ export function SarSwipeComparison({
   onImageFailure,
 }) {
   const [mode, setMode] = useState('swipe');
-  const [overlayFailed, setOverlayFailed] = useState(false);
   const [aiFailed, setAiFailed] = useState(false);
-  const [showRisk, setShowRisk] = useState(false);
+  const [overlayFailed, setOverlayFailed] = useState(false);
   const [split, setSplit] = useState(50);
   const [sizes, setSizes] = useState({});
   const [failed, setFailed] = useState(false);
@@ -46,11 +44,6 @@ export function SarSwipeComparison({
     sizes.change.width === before.width && sizes.change.height === before.height;
   const overlayMismatch = sizes.change && before &&
     (sizes.change.width !== before.width || sizes.change.height !== before.height);
-
-  const aiReady = ready && sizes.ai && !aiFailed &&
-    sizes.ai.width === before.width && sizes.ai.height === before.height;
-  const aiMismatch = sizes.ai && before &&
-    (sizes.ai.width !== before.width || sizes.ai.height !== before.height);
 
   function handleLoad(side, event) {
     const { naturalWidth, naturalHeight } = event.currentTarget;
@@ -100,10 +93,9 @@ export function SarSwipeComparison({
     onImageFailure?.();
   }
 
-  const aspectRatio = before
-    ? `${before.width} / ${before.height}`
-    : '1828 / 2048';
-  const imageAspect = before ? before.width / before.height : 1828 / 2048;
+  const displayed = mode === 'ai' ? sizes.ai : before;
+  const aspectRatio = displayed ? `${displayed.width} / ${displayed.height}` : '1828 / 2048';
+  const imageAspect = displayed ? displayed.width / displayed.height : 1828 / 2048;
 
   return (
     <div className="sar-swipe-viewer">
@@ -117,22 +109,15 @@ export function SarSwipeComparison({
         </div>
         <button type="button" className="sar-swipe-close" aria-label="Close analysis" onClick={onClose}>✕</button>
       </header>
-      {siteSelector}
       <div className="sar-console-body">
       <section className="sar-console-imagery" aria-label="Satellite imagery">
         <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
             <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>SAR CHANGE</button>
-            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => setMode('ai')}>AI SIGNAL</button>}
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => { setAiFailed(false); setMode('ai'); }}>AI SIGNAL</button>}
           </div>
-          {demo
-            ? <button className="flood-demo-risk" type="button" aria-pressed={showRisk}
-              aria-label={showRisk ? `Demo risk level ${demo.level}. Hide example risk` : 'Risk unassessed. Show example risk'}
-              data-level={showRisk ? demo.level : 0} onClick={() => setShowRisk(value => !value)}>
-              {showRisk ? `Demo · ${demo.level}` : 'Risk · 0'}
-            </button>
-            : <FloodAssessmentSiren sceneId={sceneId} />}
+          <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
       <div className="sar-imagery-content">
       <div className="sar-imagery-main">
@@ -150,11 +135,12 @@ export function SarSwipeComparison({
           onPointerUp={pointerEnd}
           onPointerCancel={pointerEnd}
           onLostPointerCapture={() => { activePointer.current = null; }}
-          aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Experimental flood candidate AI overlay' : 'SAR backscatter change'}
+          aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Experimental AI flood candidates' : 'SAR backscatter change'}
         >
           <img
             className="sar-swipe-image"
-            aria-hidden={mode === 'change'}
+            aria-hidden={mode !== 'swipe'}
+            style={mode === 'ai' ? { visibility: 'hidden' } : undefined}
             src={afterUrl}
             alt={`NISAR observation after, ${afterDate}`}
             draggable={false}
@@ -178,18 +164,20 @@ export function SarSwipeComparison({
           </div>
 
           <img className="sar-swipe-image sar-change-image" src={changeUrl}
-            alt={demo ? 'SAR backscatter change from −6 to +6 dB' : 'SAR backscatter change, absolute change of at least 3 dB'}
+            alt="SAR backscatter change, absolute change of at least 3 dB"
             style={{ visibility: mode === 'change' && overlayReady ? 'visible' : 'hidden' }}
             draggable={false} onLoad={event => handleLoad('change', event)}
             onError={() => { setOverlayFailed(true); onImageFailure?.(); }} />
 
-          {aiUrl && mode === 'ai' && <img className="sar-swipe-image" src={aiUrl}
-            alt="Experimental V1-long flood candidate scores over the later observation"
-            style={{ visibility: aiReady ? 'visible' : 'hidden' }} draggable={false}
-            onLoad={event => handleLoad('ai', event)} onError={() => setAiFailed(true)} />}
-          {mode === 'ai' && !aiReady && ready && <div className="sar-swipe-notice" role="status">
-            {aiFailed ? 'AI image unavailable.' : aiMismatch ? 'Image dimensions differ.' : 'Loading AI signal…'}
-          </div>}
+          {aiUrl && mode === 'ai' && <>
+            <img className="sar-swipe-image" src={aiUrl}
+              alt="Experimental V1-long flood candidate signal on NISAR"
+              draggable={false} onLoad={event => handleLoad('ai', event)}
+              onError={() => setAiFailed(true)} />
+            {(!sizes.ai || aiFailed) && <div className="sar-swipe-notice" role="status">
+              {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
+            </div>}
+          </>}
           {ready && mode === 'swipe' && (
             <div
               className="sar-swipe-boundary"
@@ -209,7 +197,7 @@ export function SarSwipeComparison({
           )}
 
           {mode === 'change' && !overlayReady && ready && <div className="sar-swipe-notice" role="status">{overlayFailed ? 'Change image unavailable.' : overlayMismatch ? 'Image dimensions differ.' : 'Loading SAR change…'}</div>}
-          {!ready && (
+          {!ready && mode !== 'ai' && (
             <div className="sar-swipe-notice" role="status">
               {mismatch
                 ? 'Image dimensions differ. Swipe is unavailable.'
@@ -220,22 +208,12 @@ export function SarSwipeComparison({
           )}
         </div>
       </div>
+      {mode === 'ai' && <p className="sar-ai-caption">V1-long · Experimental flood candidates · Unvalidated on NISAR.</p>}
       </div>
-      {demo ? <aside className="flood-demo-context" aria-label="Flood demo context">
-        {showRisk && <dl>
-          {['Rainfall', 'Water history', 'Relative elevation'].map((label, index) =>
-            <div key={label}><dt>{label}</dt><dd>{demo.metrics[index]}</dd></div>)}
-        </dl>}
-      </aside> : <ObservationInsights sceneId={sceneId} />}
+      <ObservationInsights sceneId={sceneId} />
       </div>
 
-      {demo && <p className="flood-demo-note">
-        {showRisk ? 'Illustrative risk and context · Mock data.' : 'Risk unassessed · Select Risk to show an example.'}
-        {' '}{mode === 'ai' && 'V1-long experimental flood candidates. No calibrated risk or official warning.'}
-        {mode === 'change' && 'Blue: weaker HH return. Red: stronger HH return.'}
-        {demo.reference && <> <a href={demo.reference} target="_blank" rel="noreferrer">NASA event imagery ↗</a></>}
-      </p>}
-      {(failed || mismatch || overlayFailed || overlayMismatch || aiFailed || aiMismatch || serviceState === 'error' || serviceState === 'setup') && <button className="sar-retry" type="button" onClick={onRefresh}>Retry images</button>}
+      {(failed || mismatch || overlayFailed || overlayMismatch || serviceState === 'error' || serviceState === 'setup') && <button className="sar-retry" type="button" onClick={onRefresh}>Retry images</button>}
       </section>
       </div>
     </div>

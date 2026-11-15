@@ -1,5 +1,5 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
-export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
+export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSites = [] } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
@@ -23,6 +23,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   }
   let map;
   let marker;
+  const monitoringPins = [];
   let framePaddingKey = "";
   let updatingMapFrame = false;
   let mode = "globe";
@@ -158,6 +159,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         } else flyTo(lat, lng);
       });
       map.on("load", () => {
+        addMonitoringPins();
         applyBasemap();
         installRasterLayers();
         if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
@@ -176,8 +178,32 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       fallback.hidden = false;
     }
   }
+  function addMonitoringPins() {
+    if (disposed || !map || monitoringPins.length) return;
+    for (const site of monitoringSites) {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'monitoring-site-pin';
+      element.setAttribute('aria-label', `Open NISAR observations for ${site.title}`);
+      element.dataset.level = String(site.level ?? 0);
+      listen(element, 'click', event => {
+        event.stopPropagation();
+        if (element.classList.contains('maplibregl-marker-covered')) return;
+        setBasemap('satellite');
+        flyTo(site.lat, site.lng);
+      });
+      listen(element, 'dblclick', event => event.stopPropagation());
+      monitoringPins.push(new maplibregl.Marker({ element, opacityWhenCovered: 0 })
+        .setLngLat([site.lng, site.lat]).addTo(map));
+    }
+  }
+
   function showSelectionMarker(lat, lng) {
     if (!map) return;
+    if (monitoringSites.some(site => site.lat === lat && site.lng === lng)) {
+      marker?.remove();
+      return;
+    }
     marker ??= new maplibregl.Marker({ color: "#d5fa79" });
     marker.setLngLat([lng, lat]).addTo(map);
   }
@@ -670,12 +696,6 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   return {
     start,
     selectCoordinates,
-    openPreparedComparison(lat, lng) {
-      if (disposed || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
-      setBasemap("satellite");
-      void openComparison(lat, lng);
-      return true;
-    },
     isReady: () => !!map && !disposed,
     destroy() {
       disposed = true;
@@ -683,6 +703,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
+      monitoringPins.splice(0).forEach(pin => pin.remove());
       if (map) map.remove();
       map = null;
     },
