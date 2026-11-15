@@ -28,6 +28,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   };
   const INTRO_DURATION_MS = 2800;
   const ROTATION_RATE = .006;
+  const rotationSpeedAt = zoom => ROTATION_RATE * 2 ** Math.min(0, START.zoom - zoom);
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.1;
@@ -93,6 +94,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationResumeTimer = setTimeout(() => {
       if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
       resumeAfterInteraction = false;
+      if (rotationResumesAfterZoom) previousRotationTime = performance.now();
       startGlobeRotation({ rampMs: rotationResumesAfterZoom ? 0 : 400 });
       rotationResumesAfterZoom = false;
     }, rotationResumesAfterZoom ? 0 : 450);
@@ -133,7 +135,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else {
           const { lng, lat } = map.getCenter();
           rotationElapsed += elapsed;
-          const speed = ROTATION_RATE * (rampMs > 0 ? Math.min(rotationElapsed / rampMs, 1) : 1);
+          const speed = rotationSpeedAt(map.getZoom()) * (rampMs > 0 ? Math.min(rotationElapsed / rampMs, 1) : 1);
           camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
@@ -166,7 +168,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     // A separate jumpTo here would cancel the zoom on each animation frame.
     const now = performance.now();
     if (lastZoomRotationTime !== null) {
-      zoomRotationOffset += Math.min(now - lastZoomRotationTime, 64) * ROTATION_RATE;
+      zoomRotationOffset += Math.min(now - lastZoomRotationTime, 64) * rotationSpeedAt(zoom);
     }
     lastZoomRotationTime = now;
     return { center: new maplibregl.LngLat(center.lng - zoomRotationOffset, center.lat) };
@@ -226,9 +228,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       syncMapFrame();
       map.getCanvas().setAttribute("aria-label", "Earth map: drag, scroll or pinch to zoom continuously from globe to streets");
       // No second renderer, tile cache reset, delayed swap or click is needed.
+      let skyWasZooming = false;
       function syncSkyCamera() {
+        skyWasZooming = map.isZooming?.() ?? false;
         onCamera?.({ lng: map.getCenter().lng, lat: map.getCenter().lat,
-          bearing: map.getBearing(), pitch: map.getPitch(),
+          bearing: map.getBearing(), pitch: map.getPitch(), zooming: skyWasZooming,
           offsetX: ((map.getPadding?.().left || 0) - (map.getPadding?.().right || 0)) / 2,
           offsetY: ((map.getPadding?.().top || 0) - (map.getPadding?.().bottom || 0)) / 2 });
       }
@@ -269,6 +273,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         lastZoomRotationTime = null;
         zoomRotationOffset = 0;
         if (updatingMapFrame) return;
+        if (skyWasZooming) syncSkyCamera();
         cameraDestination = null;
         syncZoomMode();
         if (motionInterrupted && !introActive) revealMonitoring();

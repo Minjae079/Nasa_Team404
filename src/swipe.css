@@ -335,7 +335,7 @@
   color: #fff;
 }
 .scene-globe .sar-swipe-dialog .sar-console-imagery {
-  padding-bottom: 12px;
+  padding-bottom: clamp(16px, 2vh, 20px);
 }
 /* Rendered in document.body to escape the console's clipping boundary. */
 .sar-floating-insight-popover {

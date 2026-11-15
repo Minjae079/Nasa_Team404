@@ -342,7 +342,7 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   assert.equal(update(proposed).center.lng, -90);
   now += 50;
   const rotated = update(proposed);
-  assert.equal(rotated.center.lng, -90.3);
+  assert.equal(rotated.center.lng, -90.15);
   assert.equal(rotated.center.lat, 35);
   assert.equal(rotated.zoom, undefined);
   assert.equal(interrupted.frames.size, 0);
