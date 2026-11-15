@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 export function ComparisonScene({ point }) {
   const [preview, setPreview] = useState(null);
   const dialog = useRef(null);
+  const closeButton = useRef(null);
   useEffect(() => {
     const open = event => setPreview(event.detail);
     window.addEventListener('sarscope:preview', open);
@@ -16,7 +17,7 @@ export function ComparisonScene({ point }) {
   return (<section id="compareScene" className="scene scene-compare" hidden aria-label="NASA SAR observation comparison">
         <div className="compare-top">
 
-          <button type="button" className="btn btn-dark" id="compareBack">&#10005; Close</button>
+          <button type="button" className="btn btn-dark" id="compareBack" ref={closeButton}>&#10005; Close</button>
           <div className="compare-title">
             <span className="section-tag">PRECOMPUTED SAR RESULTS</span>
             <h2 id="compareRegion">Selected region</h2>
@@ -47,7 +48,7 @@ export function ComparisonScene({ point }) {
         <div className="compare-footer-note" id="compareFootnote">
           <strong>Scientific note</strong> These are ASF full-scene browse images, not necessarily cropped to the clicked point or perfectly pixel-aligned. Image differences alone are not validated land-surface changes. For measurement, use co-registered GCOV numeric data and quality masks.
         </div>
-        {point && <StoredComparison key={`${point.lat}:${point.lng}`} point={point} />}
+        {point && <StoredComparison key={`${point.lat}:${point.lng}`} point={point} onClose={() => closeButton.current?.click()} />}
         <dialog ref={dialog} className="observation-dialog" onClose={() => setPreview(null)} aria-labelledby="observation-title">
           <header><div><span className="section-tag">NASA SAR · BROWSE PREVIEW</span><h2 id="observation-title">{preview?.title}</h2></div>
             <button className="btn btn-outline" type="button" onClick={() => dialog.current.close()}>✕ Close</button></header>
