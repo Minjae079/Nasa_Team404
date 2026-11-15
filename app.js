@@ -1,11 +1,36 @@
 /* SARSCOPE: basemaps are geographic context, not SAR measurements. */
-export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
+function globeLocatorRing({ lat, lng }) {
+  // Sample a circle at a constant angular distance along the Earth's surface.
+  const radians = Math.PI / 180;
+  const latitude = lat * radians;
+  const radius = 3.5 * radians;
+  const segments = 64;
+  const coordinates = Array.from({ length: segments }, (_, index) => {
+    const bearing = index * 2 * Math.PI / segments;
+    const ringLatitude = Math.asin(Math.sin(latitude) * Math.cos(radius)
+      + Math.cos(latitude) * Math.sin(radius) * Math.cos(bearing));
+    const longitudeOffset = Math.atan2(Math.sin(bearing) * Math.sin(radius) * Math.cos(latitude),
+      Math.cos(radius) - Math.sin(latitude) * Math.sin(ringLatitude));
+    return [lng + longitudeOffset / radians, ringLatitude / radians];
+  });
+  coordinates.push(coordinates[0]);
+  return { type: 'LineString', coordinates };
+}
+
+export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSites = [] } = {}) {
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
+  const INTRO_CAMERA = {
+    center: [START.center[0] + 42, START.center[1] - 27],
+    zoom: INTRO_ZOOM,
+    bearing: -22,
+  };
+  const INTRO_DURATION_MS = 2800;
+  const ROTATION_RATE = .006;
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
-  const PHOTO_ZOOM = 2.2; // Slightly wider Earth framing while the analysis panel is open.
+  const PHOTO_ZOOM = 2.1;
   // 수정된 부분: duration in milliseconds for View local map.
   const LOCAL_MAP_FLIGHT_MS = 2400;
   const SCENE_FLIGHT_MS = 1200;
@@ -17,12 +42,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   const fallback = $("globeFallback");
   const listeners = [];
   let disposed = false;
-  function listen(target, event, handler) {
-    target.addEventListener(event, handler);
-    listeners.push(() => target.removeEventListener(event, handler));
+  function listen(target, event, handler, options) {
+    target.addEventListener(event, handler, options);
+    listeners.push(() => target.removeEventListener(event, handler, options));
   }
   let map;
   let marker;
+  const monitoringPins = [];
   let framePaddingKey = "";
   let updatingMapFrame = false;
   let mode = "globe";
@@ -42,50 +68,101 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   let homeMotionPending = false;
   let motionInterrupted = false;
   let introActive = false;
+  let mapLoaded = false;
+  let monitoringVisible = false;
+  let globeGestureActive = false;
+  let resumeAfterInteraction = false;
+  let rotationResumeTimer;
   function stopGlobeMotion() {
+    clearTimeout(rotationResumeTimer);
+    resumeAfterInteraction = false;
     homeMotionPending = false;
     introActive = false;
     if (rotationFrame !== null) window.cancelAnimationFrame(rotationFrame);
     rotationFrame = null;
     previousRotationTime = null;
   }
+  function queueGlobeRotation() {
+    if (!resumeAfterInteraction || globeGestureActive || mode !== "globe" || reducedMotion.matches) return;
+    clearTimeout(rotationResumeTimer);
+    rotationResumeTimer = setTimeout(() => {
+      if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
+      resumeAfterInteraction = false;
+      startGlobeRotation();
+    }, 450);
+  }
   function startGlobeRotation({ intro = false } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
     introActive = intro;
     let introElapsed = 0;
+    let rotationElapsed = intro ? 400 : 0;
     function rotate(time) {
       rotationFrame = null;
       if (disposed || reducedMotion.matches || mode !== "globe") return;
       const elapsed = previousRotationTime === null ? 0 : Math.min(time - previousRotationTime, 64);
       previousRotationTime = time;
       if (!document.hidden) {
-        const center = map.getCenter();
-        const camera = { center: [((center.lng - elapsed * 0.006 + 540) % 360) - 180, center.lat] };
+        let camera;
         if (introActive) {
           introElapsed += elapsed;
-          const progress = Math.min(introElapsed / 3000, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          camera.zoom = progress === 1 ? homeZoom() : INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * eased;
+          const progress = Math.min(introElapsed / INTRO_DURATION_MS, 1);
+          const remaining = 1 - progress;
+          const [startLng, startLat] = INTRO_CAMERA.center;
+          const [endLng, endLat] = START.center;
+          const overshoot = Math.max(0, introElapsed - INTRO_DURATION_MS);
+          // The Bezier's final tangent matches the steady rotation in longitude.
+          const lng = remaining ** 3 * startLng
+            + 3 * remaining ** 2 * progress * (startLng - 5)
+            + 3 * remaining * progress ** 2 * (endLng + ROTATION_RATE * INTRO_DURATION_MS / 3)
+            + progress ** 3 * endLng;
+          const lat = remaining ** 3 * startLat
+            + 3 * remaining ** 2 * progress * (startLat + 12)
+            + (3 * remaining * progress ** 2 + progress ** 3) * endLat;
+          camera = {
+            center: [lng - overshoot * ROTATION_RATE, lat],
+            zoom: INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * (1 - remaining ** 3),
+            bearing: progress === 1 ? START.bearing : INTRO_CAMERA.bearing * remaining ** 2,
+          };
           if (progress === 1) introActive = false;
+        } else {
+          const { lng, lat } = map.getCenter();
+          rotationElapsed += elapsed;
+          const speed = ROTATION_RATE * Math.min(rotationElapsed / 400, 1);
+          camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
-        // One camera update rotates and approaches together, then keeps rotating.
         map.jumpTo(camera);
+        if (!introActive) revealMonitoring();
       }
       rotationFrame = window.requestAnimationFrame(rotate);
     }
     rotationFrame = window.requestAnimationFrame(rotate);
   }
 
+  const highRiskAreas = {
+    type: 'FeatureCollection',
+    features: monitoringSites.filter(site => site.level === 3).flatMap(site => {
+      const locator = { type: 'Feature', properties: {}, geometry: globeLocatorRing(site) };
+      if (!site.bounds) return [locator];
+      const [west, south, east, north] = site.bounds;
+      return [locator, {
+        type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+          [west, south], [east, south], [east, north], [west, north], [west, south],
+        ]] },
+      }];
+    }),
+  };
+
   // A single MapLibre canvas renders the globe and local map.
   function initGlobe() {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? homeZoom() : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
+        container: "globeViz", ...START, ...(reducedMotion.matches ? { zoom: homeZoom() } : INTRO_CAMERA), minZoom: INTRO_ZOOM, maxZoom: 19,
         attributionControl: { compact: true }, doubleClickZoom: false,
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
+            "high-risk-areas": { type: "geojson", data: highRiskAreas, tolerance: 0.15 },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -105,7 +182,20 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
               "raster-brightness-min": 0.055,
               "raster-fade-duration": 400
             } },
-            { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } }
+            { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
+            {
+              id: "high-risk-observation-outline", type: "line", source: "high-risk-areas",
+              filter: ["==", ["geometry-type"], "Polygon"],
+              paint: { "line-color": "#ff5657", "line-width": 2.5,
+                "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
+            },
+            {
+              id: "high-risk-location-halo", type: "line", source: "high-risk-areas",
+              filter: ["==", ["geometry-type"], "LineString"],
+              layout: { "line-join": "round" },
+              paint: { "line-color": "#ff5657", "line-width": 2.5,
+                "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
+            },
           ],
           sky: { "sky-color": "#050b16", "horizon-color": "#bddfff",
             "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.85, 5, 0.85, 7, 0] }
@@ -123,19 +213,29 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       map.on("move", syncSkyCamera);
       syncSkyCamera();
       map.on("zoom", syncZoomMode);
-      // Stop before a drag or wheel gesture so animation never fights the user.
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
         map.on(eventName, () => {
           motionInterrupted = true;
           const interruptIntro = homeMotionPending || introActive;
           stopGlobeMotion();
+          globeGestureActive ||= eventName !== "wheel";
+          resumeAfterInteraction = mode === "globe";
           if (interruptIntro) map.stop();
+          queueGlobeRotation();
         });
+      }
+      for (const eventName of ["mouseup", "touchend", "touchcancel", "blur"]) {
+        listen(window, eventName, event => {
+          if (event.touches?.length) return;
+          globeGestureActive = false;
+          queueGlobeRotation();
+        }, true);
       }
       map.on("movestart", event => {
         if (event.originalEvent) {
           motionInterrupted = true;
           stopGlobeMotion();
+          resumeAfterInteraction = mode === "globe";
           cameraDestination = null;
         }
       });
@@ -143,9 +243,12 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         if (updatingMapFrame) return;
         cameraDestination = null;
         syncZoomMode();
+        if (motionInterrupted && !introActive) revealMonitoring();
         if (homeMotionPending && mode === "globe") {
           homeMotionPending = false;
           startGlobeRotation();
+        } else {
+          queueGlobeRotation();
         }
       });
       map.on("dblclick", event => {
@@ -158,10 +261,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         } else flyTo(lat, lng);
       });
       map.on("load", () => {
+        mapLoaded = true;
         applyBasemap();
         installRasterLayers();
         if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
           startGlobeRotation({ intro: true });
+        } else if (!map.isMoving?.()) {
+          revealMonitoring();
         }
       });
       map.on("error", event => {
@@ -169,16 +275,64 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
         $("mapLoadStatus").hidden = false;
         $("mapLoadStatus").textContent = "Some map tiles could not load. Check your connection and try zooming again.";
       });
-      map.on("idle", () => { $("mapLoadStatus").hidden = true; });
+      map.on("idle", () => {
+        $("mapLoadStatus").hidden = true;
+        if (motionInterrupted && !introActive) revealMonitoring();
+      });
       listen(window, "resize", resizeGlobe);
     } catch (error) {
       console.error("Unable to create Earth map", error);
       fallback.hidden = false;
     }
   }
+  function revealMonitoring() {
+    if (disposed || !map || !mapLoaded || monitoringVisible) return;
+    monitoringVisible = true;
+    if (highRiskAreas.features.length) {
+      map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
+      map.setPaintProperty("high-risk-location-halo", "line-opacity",
+        ["interpolate", ["linear"], ["zoom"], 3, 1, 4.5, 0]);
+    }
+    for (const site of monitoringSites) {
+      const element = document.createElement('button');
+      element.type = 'button';
+      element.className = 'monitoring-site-pin';
+      element.setAttribute('aria-label', site.level === 3
+        ? `High screening level. Open NISAR observations for ${site.title}`
+        : `Open NISAR observations for ${site.title}`);
+      element.dataset.level = String(site.level ?? 0);
+      element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
+      if (site.level === 3) {
+        element.innerHTML += '<span class="monitoring-pin-warning" aria-hidden="true">!</span>';
+      }
+      listen(element, 'pointerdown', event => {
+        event.stopPropagation();
+        if (!event.isPrimary || event.button !== 0) return;
+        // Keep the marker under the pointer until the native click is dispatched.
+        const interruptIntro = homeMotionPending || introActive;
+        motionInterrupted = true;
+        stopGlobeMotion();
+        if (interruptIntro) map.stop();
+      });
+      listen(element, 'click', event => {
+        event.stopPropagation();
+        if (element.classList.contains('maplibregl-marker-covered')) return;
+        setBasemap('satellite');
+        flyTo(site.lat, site.lng);
+      });
+      listen(element, 'dblclick', event => event.stopPropagation());
+      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
+        .setLngLat([site.lng, site.lat]).addTo(map));
+    }
+  }
+
   function showSelectionMarker(lat, lng) {
     if (!map) return;
-    marker ??= new maplibregl.Marker({ color: "#d5fa79" });
+    if (monitoringSites.some(site => site.lat === lat && site.lng === lng)) {
+      marker?.remove();
+      return;
+    }
+    marker ??= new maplibregl.Marker({ color: "#d5fa79", subpixelPositioning: true });
     marker.setLngLat([lng, lat]).addTo(map);
   }
   function scenePadding() {
@@ -187,10 +341,15 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
     // lower portion on phones. Keep the selected location in the free globe area.
     // Padding is applied to the map camera, never to the canvas with CSS transforms.
     if (mode === "compare") {
-      if (desktop) return {
-        left: Math.round(Math.min(620, Math.max(420, window.innerWidth * 0.4))),
-        right: 0, top: 80, bottom: 80,
-      };
+      if (desktop) {
+        const height = window.innerHeight;
+        const width = Math.min(580, Math.max(390, Math.min(window.innerWidth * .4, height * .75 - 94, height - 289)));
+        const gutter = Math.min(76, Math.max(24, window.innerWidth * .0435));
+        globeScene.style?.setProperty("--observation-width", `${width}px`);
+        // The header covers the top of the canvas, so center below it.
+        const top = document.querySelector(".topbar")?.offsetHeight ?? 84;
+        return { left: Math.round(gutter + width + 24), right: 0, top, bottom: 0 };
+      }
       return { left: 0, right: 0, top: 0, bottom: Math.round(globeScene.clientHeight * 0.43) };
     }
     const home = mode === "globe" && !selectedLocation;
@@ -279,13 +438,17 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       mapScene.hidden = true;
       globeScene.classList.remove("is-detail");
       refreshRasterLayers(false);
+      resumeAfterInteraction = true;
+      queueGlobeRotation();
     }
   }
   function globeZoom(direction) {
     motionInterrupted = true;
     stopGlobeMotion();
     cameraDestination = null;
+    resumeAfterInteraction = mode === "globe";
     if (map) map.zoomTo(map.getZoom() + (direction === "in" ? 1 : -1), { duration: reducedMotion.matches ? 0 : 250 });
+    queueGlobeRotation();
   }
   function flyTo(lat, lng) {
     motionInterrupted = true;
@@ -677,6 +840,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
       onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
+      monitoringPins.splice(0).forEach(pin => pin.remove());
       if (map) map.remove();
       map = null;
     },

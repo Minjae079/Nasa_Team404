@@ -37,13 +37,22 @@
 .sar-swipe-dates { display: flex; justify-content: space-between; gap: 12px; padding: 0 2px 12px; color: #ced8dc; font-size: 11px; font-variant-numeric: tabular-nums; }
 .sar-swipe-dates strong { color: #8ba1ac; font-size: 9px; font-weight: 500; letter-spacing: .12em; margin-right: 8px; }
 .sar-swipe-stage { flex: 1; min-height: 0; container-type: size; display: grid; place-items: center; overflow: hidden; border: 1px solid #26363f; border-radius: 5px; background: #091117; }
-.sar-swipe-frame { position: relative; width: min(100cqw, calc(100cqh * var(--sar-image-aspect))); max-width: 100%; overflow: hidden; isolation: isolate; background: #172830; cursor: ew-resize; touch-action: none; user-select: none; }
+.sar-swipe-frame { position: relative; width: 100%; max-width: 100%; overflow: hidden; isolation: isolate; background: #172830; cursor: ew-resize; touch-action: none; user-select: none; }
 .sar-swipe-image, .sar-swipe-before { position: absolute; inset: 0; width: 100%; height: 100%; }
 .sar-swipe-image { object-fit: contain; display: block; pointer-events: none; user-select: none; }
 .sar-swipe-before { overflow: hidden; pointer-events: none; }
+.sar-ai-layer { position: absolute; inset: 0; background: #172830; pointer-events: none; }
+.sar-imagery-layer { opacity: 0; visibility: hidden; }
+.sar-imagery-layer[data-visible='true'] { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: no-preference) {
+  .sar-imagery-layer { transition: opacity 240ms ease-out, visibility 0s linear 240ms; }
+  .sar-imagery-layer[data-visible='true'] { transition-delay: 0s; }
+  .sar-swipe-boundary { animation: sar-swipe-boundary-enter 240ms ease-out both; }
+}
+@keyframes sar-swipe-boundary-enter { from { opacity: 0; } to { opacity: 1; } }
 
 .sar-swipe-boundary { position: absolute; top: 0; bottom: 0; width: 2px; background: #f0f8e9; box-shadow: 0 0 8px #0009; transform: translateX(-50%); }
-.sar-swipe-handle { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e1efcf; color: #19362d; border: 2px solid #30483c; font-size: 23px; box-shadow: 0 2px 14px #0008; }
+.sar-swipe-handle { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #e1efcf; color: #19362d; border: 2px solid #30483c; font-size: 16px; box-shadow: 0 2px 8px #0008; }
 .sar-swipe-boundary:focus-visible { outline: none; }
 .sar-swipe-boundary:focus-visible .sar-swipe-handle { outline: 3px solid #d3f5a6; outline-offset: 4px; }
 .sar-swipe-dialog button:focus-visible { outline: 2px solid #d3f5a6; outline-offset: 3px; }
@@ -356,3 +365,172 @@
   .scene-globe .sar-swipe-dialog .sar-siren-button { width: 38px; height: 38px; padding: 8px; }
   .scene-globe .sar-swipe-dialog .sar-console-toolbar { margin-bottom: 7px; }
 }
+
+.sar-view-ai { cursor: default; touch-action: auto; }
+.sar-ai-caption { margin: 5px 0 0; color: #a5b5bf; font-size: .68rem; }
+.monitoring-site-pin {
+  width: 15px; height: 15px; padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%; background: #f3f6fb; cursor: pointer;
+}
+.monitoring-site-pin.maplibregl-marker-covered { visibility: hidden; pointer-events: none; }
+.monitoring-site-pin[data-level='1'] { background: #8de399; }
+.monitoring-site-pin[data-level='2'] { background: #ffbb72; }
+.monitoring-site-pin[data-level='3'] { background: #ff8c83; }
+.monitoring-site-pin::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+}
+
+.scene-globe .scene-compare:not([hidden]):has(.sar-swipe-dialog) { animation: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .scene-globe .stored-comparison > .sar-swipe-dialog {
+    animation: sar-console-enter
+      calc(var(--scene-motion-duration, 1200ms) * .66)
+      var(--scene-motion-ease)
+      calc(var(--scene-motion-duration, 1200ms) * .20) backwards;
+  }
+}
+@keyframes sar-console-enter {
+  from { opacity: 0; translate: -42px 0; }
+  to { opacity: 1; translate: none; }
+}
+.scene-globe .sar-swipe-dialog .sar-console-modes .sar-swipe-mode { padding-inline: 8px; }
+
+.sar-insight-button[data-indicator-level='0'] { --indicator-color: #f3f6fb; }
+.sar-insight-button[data-indicator-level='1'] { --indicator-color: #8de399; }
+.sar-insight-button[data-indicator-level='2'] { --indicator-color: #ffc27f; }
+.sar-insight-button[data-indicator-level='3'] { --indicator-color: #ff9b93; }
+
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level] {
+  color: var(--indicator-color);
+  border-color: color-mix(in srgb, var(--indicator-color) 40%, #263f4b);
+  background: color-mix(in srgb, var(--indicator-color) 11%, #10242f);
+}
+.scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level]:is(:hover, :focus-visible, [aria-expanded='true']) {
+  border-color: var(--indicator-color);
+  background: color-mix(in srgb, var(--indicator-color) 22%, #10242f);
+}
+.scene-globe .sar-swipe-dialog .sar-siren-button:is([data-indicator-level='2'], [data-indicator-level='3']) {
+  border-color: var(--indicator-color);
+  background: color-mix(in srgb, var(--indicator-color) 23%, #112330);
+}
+.scene-globe .sar-swipe-dialog .sar-siren-button[data-indicator-level='3'] {
+  box-shadow: 0 0 0 2px #ff9b9350, 0 0 13px #ff574d42;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scene-globe .sar-swipe-dialog .sar-siren-button[data-indicator-level='3'] {
+    animation: sar-high-screening 1250ms ease-out 2;
+  }
+}
+@keyframes sar-high-screening {
+  from { box-shadow: 0 0 0 0 #ff9b93a0, 0 0 13px #ff574d42; }
+  to { box-shadow: 0 0 0 7px #ff9b9300, 0 0 13px #ff574d42; }
+}
+
+/* Make analysis the focus once a location is selected. */
+.scene-globe { --observation-width: clamp(390px, 39vw, 580px); }
+.sar-swipe-dialog, .model-results-dialog { background: #0c1b25f5; border-color: #41616b; border-radius: 14px; }
+@media (min-width: 901px) {
+  .scene-globe .sar-swipe-dialog { width: var(--observation-width); }
+  .scene-globe .sar-swipe-dialog .sar-console-imagery { padding-inline: 14px; }
+  .scene-globe .sar-swipe-dialog .sar-imagery-content { gap: 7px; }
+  .scene-globe.is-comparing .coordinate-panel {
+    left: calc(var(--observation-width) + 18px);
+    width: min(330px, calc(100vw - var(--observation-width) - 120px));
+  }
+}
+
+.scene-globe .sar-swipe-dialog .sar-console-title-line h2 { font-size: clamp(19px, 1.9vw, 26px); }
+.scene-globe .sar-swipe-dialog .sar-console-title-line p { color: #a8bcc7; font-size: 11px; }
+.scene-globe .sar-swipe-dialog .sar-console-toolbar { gap: 8px; margin-bottom: 13px; }
+.scene-globe .sar-swipe-dialog .sar-console-modes { display: flex; flex-wrap: wrap; gap: 5px; padding: 0; background: transparent; }
+.scene-globe .sar-swipe-dialog .sar-console-modes button {
+  min-height: 32px; padding: 6px 10px; font-size: 11px; letter-spacing: 0;
+  border: 1px solid #4a6572; color: #dce7eb; background: #142833;
+}
+.scene-globe .sar-swipe-dialog .sar-console-modes button:hover { background: #263f49; }
+.scene-globe .sar-swipe-dialog .sar-console-modes button[aria-pressed='true'] {
+  background: var(--mint); color: #172b21; border-color: var(--mint);
+}
+.scene-globe .sar-swipe-dialog .sar-swipe-dates {
+  padding: 0 2px 10px; gap: 10px; font-size: 13px;
+}
+.sar-swipe-dates strong { font-size: 11px; text-transform: uppercase; color: #a8bac3; }
+.sar-swipe-dates time { color: #f0f5f6; font-weight: 650; }
+.scene-globe .sar-swipe-stage { border-color: transparent; background: transparent; }
+.sar-swipe-frame { border: 1px solid #526f7a; border-radius: 6px; }
+.sar-swipe-figure {
+  --date-row-height: 33px;
+  width: min(100cqw, calc(max(0px, 100cqh - var(--date-row-height)) * var(--sar-image-aspect)));
+  max-width: 100%;
+}
+.scene-globe .sar-swipe-dialog .sar-swipe-dates {
+  height: var(--date-row-height);
+  align-items: start;
+  white-space: nowrap;
+}
+.sar-view-swipe .sar-swipe-image:not(.sar-change-image) { filter: contrast(1.05); }
+.sar-swipe-boundary {
+  background: #f4f7f0;
+  box-shadow: 0 0 0 1px #162620, 0 1px 8px #071016;
+}
+.sar-swipe-handle { background: #eff5e6; }
+.scene-globe .sar-swipe-dialog .sar-console-modes .sar-swipe-mode[aria-pressed='true'] {
+  background: #eff5e6;
+  border-color: #eff5e6;
+}
+.sar-ai-caption {
+  display: flex; align-items: center; gap: 7px;
+  color: #d6e5ef; font-size: 11px; margin-top: 8px;
+}
+.sar-ai-caption > span { background: #55b7ff; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+
+.monitoring-site-pin[data-level] {
+  width: 22px; height: 30px; background: transparent; border: 0;
+  color: var(--pin-color, #f3f6fb);
+}
+.monitoring-site-pin svg {
+  display: block; width: 100%; height: 100%;
+  filter: drop-shadow(0 3px 3px #000c);
+  pointer-events: none;
+}
+.monitoring-site-pin[data-level='1'] { --pin-color: #a3efac; }
+.monitoring-site-pin[data-level='2'] { --pin-color: #ffbb72; }
+.monitoring-site-pin[data-level='3'] { --pin-color: #ff6966; }
+.sar-insight-rail .sar-insight-button[data-indicator-level='0'] { --indicator-color: #f3f6fb; }
+
+@media (max-width: 760px) { .sar-swipe-figure { --date-row-height: 48px; } }
+@media (max-width: 560px) {
+  .scene-globe .sar-swipe-dialog .sar-console-modes button { padding-inline: 6px; font-size: 10px; }
+  .scene-globe .sar-swipe-dialog .sar-swipe-dates { font-size: 12px; }
+  .sar-swipe-dates strong { margin-right: 4px; }
+}
+
+
+.monitoring-pin-warning {
+  position: absolute;
+  inset: auto 0 100%;
+  color: #ff5c59;
+  font: 900 30px/1 system-ui, sans-serif;
+  text-align: center;
+  text-shadow: 0 2px 5px #000, 0 0 13px #ff5657b0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .monitoring-site-pin svg { animation: monitoring-pin-enter 700ms ease-out both; }
+  .monitoring-pin-warning {
+    animation: monitoring-alert-rise 1.5s ease-out 450ms infinite both;
+  }
+}
+@keyframes monitoring-pin-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes monitoring-alert-rise {
+  0% { opacity: 0; transform: translateY(3px) scale(.82); }
+  10% { opacity: 1; transform: translateY(-6px) scale(1); }
+  27% { opacity: .9; transform: translateY(-13px) scale(1); }
+  46%, 100% { opacity: 0; transform: translateY(-30px) scale(.96); }
+}
+
+.sar-floating-insight-popover { width: max-content; font-size: 12px; line-height: 1.3; }

@@ -11,6 +11,8 @@ export function SarSwipeComparison({
   serviceState,
   onRefresh,
   changeUrl,
+  aiUrl,
+  monitoringSite,
   onClose,
   beforeUrl,
   afterUrl,
@@ -19,6 +21,8 @@ export function SarSwipeComparison({
   onImageFailure,
 }) {
   const [mode, setMode] = useState('swipe');
+  const [aiAttempt, setAiAttempt] = useState(0);
+  const [aiFailed, setAiFailed] = useState(false);
   const [overlayFailed, setOverlayFailed] = useState(false);
   const [split, setSplit] = useState(50);
   const [sizes, setSizes] = useState({});
@@ -90,10 +94,18 @@ export function SarSwipeComparison({
     onImageFailure?.();
   }
 
-  const aspectRatio = before
-    ? `${before.width} / ${before.height}`
-    : '1828 / 2048';
-  const imageAspect = before ? before.width / before.height : 1828 / 2048;
+  function showAi() {
+    if (aiAttempt === 0 || aiFailed) {
+      setAiAttempt(attempt => attempt + 1);
+      setAiFailed(false);
+    }
+    setMode('ai');
+  }
+
+  const aiReady = Boolean(sizes.ai && !aiFailed);
+  const displayed = mode === 'ai' && aiReady ? sizes.ai : before;
+  const aspectRatio = displayed ? `${displayed.width} / ${displayed.height}` : '1828 / 2048';
+  const imageAspect = displayed ? displayed.width / displayed.height : 1828 / 2048;
 
   return (
     <div className="sar-swipe-viewer">
@@ -111,90 +123,107 @@ export function SarSwipeComparison({
       <section className="sar-console-imagery" aria-label="Satellite imagery">
         <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
-            <button type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
-            <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>SAR CHANGE</button>
+            <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
+            <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={showAi}>Flood candidates</button>}
           </div>
-          <FloodAssessmentSiren sceneId={sceneId} />
+          <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
       <div className="sar-imagery-content">
       <div className="sar-imagery-main">
-      <div className="sar-swipe-dates">
-        <span><strong>BEFORE</strong> {beforeDate}</span>
-        <span><strong>AFTER</strong> {afterDate}</span>
-      </div>
-
-      <div className="sar-swipe-stage">
-        <div
-          className={`sar-swipe-frame sar-view-${mode}`}
-          style={{ aspectRatio, '--sar-image-aspect': imageAspect }}
-          onPointerDown={pointerDown}
-          onPointerMove={pointerMove}
-          onPointerUp={pointerEnd}
-          onPointerCancel={pointerEnd}
-          onLostPointerCapture={() => { activePointer.current = null; }}
-          aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : 'SAR backscatter change'}
-        >
-          <img
-            className="sar-swipe-image"
-            aria-hidden={mode === 'change'}
-            src={afterUrl}
-            alt={`NISAR observation after, ${afterDate}`}
-            draggable={false}
-            onLoad={event => handleLoad('after', event)}
-            onError={imageError}
-          />
-
+      <div className="sar-swipe-stage" style={{ '--sar-image-aspect': imageAspect }}>
+        <div className="sar-swipe-figure">
+          <div className="sar-swipe-dates">
+            <span><strong>Before</strong> <time dateTime={beforeDate}>{beforeDate}</time></span>
+            <span><strong>After</strong> <time dateTime={afterDate}>{afterDate}</time></span>
+          </div>
           <div
-            className="sar-swipe-before"
-            aria-hidden={mode === 'change'}
-            style={{ clipPath: `inset(0 ${100 - split}% 0 0)`, visibility: mode === 'swipe' ? 'visible' : 'hidden' }}
+            className={`sar-swipe-frame sar-view-${mode}`}
+            style={{ aspectRatio }}
+            onPointerDown={pointerDown}
+            onPointerMove={pointerMove}
+            onPointerUp={pointerEnd}
+            onPointerCancel={pointerEnd}
+            onLostPointerCapture={() => { activePointer.current = null; }}
+            aria-label={mode === 'swipe' ? 'Drag horizontally to compare two observations' : mode === 'ai' ? 'Experimental AI flood candidates' : 'SAR backscatter change'}
           >
             <img
               className="sar-swipe-image"
-              src={beforeUrl}
-              alt={`NISAR observation before, ${beforeDate}`}
+              aria-hidden={mode !== 'swipe'}
+              src={afterUrl}
+              alt={`NISAR observation after, ${afterDate}`}
               draggable={false}
-              onLoad={event => handleLoad('before', event)}
+              onLoad={event => handleLoad('after', event)}
               onError={imageError}
             />
-          </div>
 
-          <img className="sar-swipe-image sar-change-image" src={changeUrl}
-            alt="SAR backscatter change, absolute change of at least 3 dB"
-            style={{ visibility: mode === 'change' && overlayReady ? 'visible' : 'hidden' }}
-            draggable={false} onLoad={event => handleLoad('change', event)}
-            onError={() => { setOverlayFailed(true); onImageFailure?.(); }} />
-
-          {ready && mode === 'swipe' && (
             <div
-              className="sar-swipe-boundary"
-              style={{ left: `${split}%` }}
-              role="slider"
-              tabIndex={0}
-              aria-label="Before image revealed"
-              aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(split)}
-              aria-valuetext={`${Math.round(split)}% Before revealed`}
-              onKeyDown={event => {
-                const positions = { ArrowLeft: split - 1, ArrowDown: split - 1, ArrowRight: split + 1, ArrowUp: split + 1, PageDown: split - 10, PageUp: split + 10, Home: 0, End: 100 };
-                if (event.key in positions) { event.preventDefault(); setSplit(clamp(positions[event.key])); }
-              }}
+              className="sar-swipe-before sar-imagery-layer"
+              data-visible={mode === 'swipe'}
+              aria-hidden={mode !== 'swipe'}
+              style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}
             >
-              <span className="sar-swipe-handle">‹ ›</span>
+              <img
+                className="sar-swipe-image"
+                src={beforeUrl}
+                alt={`NISAR observation before, ${beforeDate}`}
+                draggable={false}
+                onLoad={event => handleLoad('before', event)}
+                onError={imageError}
+              />
             </div>
-          )}
 
-          {mode === 'change' && !overlayReady && ready && <div className="sar-swipe-notice" role="status">{overlayFailed ? 'Change image unavailable.' : overlayMismatch ? 'Image dimensions differ.' : 'Loading SAR change…'}</div>}
-          {!ready && (
-            <div className="sar-swipe-notice" role="status">
-              {mismatch
-                ? 'Image dimensions differ. Swipe is unavailable.'
-                : failed
-                  ? 'An image could not be loaded. Try refreshing.'
-                  : 'Loading both observations…'}
-            </div>
-          )}
+            <img className="sar-swipe-image sar-change-image sar-imagery-layer" src={changeUrl}
+              alt="SAR backscatter change, absolute change of at least 3 dB"
+              data-visible={Boolean(mode === 'change' && overlayReady)}
+              aria-hidden={mode !== 'change' || !overlayReady}
+              draggable={false} onLoad={event => handleLoad('change', event)}
+              onError={() => { setOverlayFailed(true); onImageFailure?.(); }} />
+
+            {aiUrl && aiAttempt > 0 && (
+              <div className="sar-ai-layer sar-imagery-layer" data-visible={mode === 'ai' && aiReady}
+                aria-hidden={mode !== 'ai' || !aiReady}>
+                <img key={aiAttempt} className="sar-swipe-image" src={aiUrl}
+                  alt="Blue experimental V1-long flood candidates over the later NISAR observation"
+                  draggable={false} onLoad={event => handleLoad('ai', event)}
+                  onError={() => setAiFailed(true)} />
+              </div>
+            )}
+            {mode === 'ai' && !aiReady && <div className="sar-swipe-notice" role="status">
+              {aiFailed ? 'AI signal unavailable.' : 'Loading AI signal…'}
+            </div>}
+            {ready && mode === 'swipe' && (
+              <div
+                className="sar-swipe-boundary"
+                style={{ left: `${split}%` }}
+                role="slider"
+                tabIndex={0}
+                aria-label="Before image revealed"
+                aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(split)}
+                aria-valuetext={`${Math.round(split)}% Before revealed`}
+                onKeyDown={event => {
+                  const positions = { ArrowLeft: split - 1, ArrowDown: split - 1, ArrowRight: split + 1, ArrowUp: split + 1, PageDown: split - 10, PageUp: split + 10, Home: 0, End: 100 };
+                  if (event.key in positions) { event.preventDefault(); setSplit(clamp(positions[event.key])); }
+                }}
+              >
+                <span className="sar-swipe-handle">‹ ›</span>
+              </div>
+            )}
+
+            {mode === 'change' && !overlayReady && ready && <div className="sar-swipe-notice" role="status">{overlayFailed ? 'Change image unavailable.' : overlayMismatch ? 'Image dimensions differ.' : 'Loading SAR change…'}</div>}
+            {!ready && mode !== 'ai' && (
+              <div className="sar-swipe-notice" role="status">
+                {mismatch
+                  ? 'Image dimensions differ. Swipe is unavailable.'
+                  : failed
+                    ? 'An image could not be loaded. Try refreshing.'
+                    : 'Loading both observations…'}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {mode === 'ai' && <p className="sar-ai-caption"><span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.</p>}
       </div>
       <ObservationInsights sceneId={sceneId} />
       </div>

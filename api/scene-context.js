@@ -5,6 +5,8 @@ import {
   databaseError
 } from '../lib/supabaseServer.js';
 
+import { monitoringSites } from '../src/lib/monitoringSites.js';
+
 import {
   readSceneIndex
 } from '../lib/sceneBundle.js';
@@ -24,21 +26,14 @@ export async function getSceneContext(request, client) {
     return apiJson({ error: 'INVALID_QUERY' }, 400);
   }
 
-  // 공개된 실제 NISAR 장면인지 확인
-  const bucket = client.storage.from('sarscope-data');
-  const index = await readSceneIndex(bucket);
-
-  const published = index.some(row =>
-    row.published &&
-    !row.metadata.synthetic &&
-    row.metadata.id === id
-  );
-
-  if (!published) {
-    return apiJson({
-      state: 'empty',
-      result: null
-    });
+  // Bundled monitoring sites have real imagery even if Storage is unavailable.
+  if (!monitoringSites.some(site => site.id === id)) {
+    const bucket = client.storage.from('sarscope-data');
+    const index = await readSceneIndex(bucket);
+    const published = index.some(row =>
+      row.published && !row.metadata.synthetic && row.metadata.id === id
+    );
+    if (!published) return apiJson({ state: 'empty', result: null });
   }
 
   // Supabase PostgreSQL에서 환경 지표 조회

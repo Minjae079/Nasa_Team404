@@ -133,18 +133,11 @@ function formatMetric(key, metric) {
   }
 }
 
-// Keep scientific interpretation distinct from flood assessment.
-function metricDescription(key) {
-  switch (key) {
-    case 'rainfall':
-      return '7-day rainfall at this point.';
-    case 'waterHistory':
-      return 'Historical water coverage within 2 km; not flood probability.';
-    case 'relativeElevation':
-      return 'Height relative to nearby terrain; not flood depth.';
-    default:
-      return 'Environmental context only.';
-  }
+// Presentation bands for independent context indicators, not flood thresholds.
+function indicatorLevel(key, value) {
+  if (key === 'rainfall') return value < 10 ? 1 : value < 100 ? 2 : 3;
+  if (key === 'waterHistory') return value < 5 ? 0 : value < 20 ? 1 : value < 30 ? 2 : 3;
+  return value >= -0.5 ? 1 : value >= -1.5 ? 2 : 3;
 }
 
 function InsightSymbol({ kind }) {
@@ -199,12 +192,11 @@ function InsightSymbol({ kind }) {
 }
 
 // Show descriptions only while the pointer is over an icon.
-function InsightTrigger({
-  label,
+export function InsightTrigger({
+  text,
   ariaLabel,
-  summary,
-  detail,
   className = '',
+  level,
   children
 }) {
   const buttonRef = useRef(null);
@@ -228,7 +220,7 @@ function InsightTrigger({
         button.closest('.sar-swipe-dialog')
           ?.getBoundingClientRect() ?? anchor;
 
-      const width = Math.min(234, window.innerWidth - 24);
+      const width = Math.min(210, window.innerWidth - 24);
 
       const external =
         window.innerWidth - panel.right >= width + 24;
@@ -244,15 +236,15 @@ function InsightTrigger({
           );
 
       const desiredTop = external
-        ? anchor.top + anchor.height / 2 - 48
-        : anchor.top - 116;
+        ? anchor.top + anchor.height / 2 - 15
+        : anchor.top - 38;
 
       const top = Math.max(
         12,
-        Math.min(desiredTop, window.innerHeight - 136)
+        Math.min(desiredTop, window.innerHeight - 42)
       );
 
-      setPosition({ left, top, width });
+      setPosition({ left, top, maxWidth: width });
     };
 
     const escape = event => {
@@ -282,6 +274,7 @@ function InsightTrigger({
         type="button"
         className={`sar-insight-button ${className}`.trim()}
         aria-label={ariaLabel}
+        data-indicator-level={level}
         aria-describedby={visible ? tooltipId : undefined}
         aria-expanded={visible}
         onPointerEnter={event => {
@@ -302,44 +295,11 @@ function InsightTrigger({
           role="tooltip"
           style={position}
         >
-          <strong>{label}</strong>
-          <span>{summary}</span>
-          <small>{detail}</small>
+          {text}
         </div>,
         document.body
       )}
     </>
-  );
-}
-
-// Flood Alert remains independent from environmental context.
-// No unvalidated danger/safety classification is displayed.
-export function ObservationSiren() {
-  return (
-    <div
-      className="sar-console-alert"
-      aria-label="Flood assessment status"
-    >
-      <InsightTrigger
-        label="Flood assessment"
-        ariaLabel="Flood assessment: not verified"
-        summary="Not verified."
-        detail="SAR changes alone do not confirm flooding."
-        className="sar-siren-button"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M5 17h14M7 17v-6a5 5 0 0 1 10 0v6M9 21h6M12 3V1M3.5 6.5 2 5M20.5 6.5 22 5M3 12H1M23 12h-2" />
-        </svg>
-      </InsightTrigger>
-    </div>
   );
 }
 
@@ -410,22 +370,8 @@ export function ObservationInsights({ sceneId }) {
         const metric = context.metrics[item.key];
         const value = formatMetric(item.key, metric);
 
-        let summary;
-        let detail;
-
-        if (value !== null) {
-          summary = value;
-          detail = metricDescription(item.key);
-        } else if (context.state === 'loading') {
-          summary = 'Loading data…';
-          detail = 'Retrieving regional environmental context.';
-        } else if (context.state === 'error') {
-          summary = 'Data unavailable.';
-          detail = 'Unable to load context. Refresh the analysis.';
-        } else {
-          summary = 'Not available.';
-          detail = 'No available regional data for this scene.';
-        }
+        const summary = value ?? (context.state === 'loading' ? 'Loading…' : 'Unavailable');
+        const text = `${item.label} · ${summary}`;
 
         return (
           <div
@@ -433,10 +379,9 @@ export function ObservationInsights({ sceneId }) {
             key={item.key}
           >
             <InsightTrigger
-              label={item.label}
-              ariaLabel={`${item.label}: ${summary}`}
-              summary={summary}
-              detail={detail}
+              text={text}
+              ariaLabel={text}
+              level={value !== null ? indicatorLevel(item.key, metric.value) : 0}
             >
               <InsightSymbol kind={item.key} />
             </InsightTrigger>
