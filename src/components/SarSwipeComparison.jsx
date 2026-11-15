@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ObservationInsights, ObservationSiren } from './ObservationContext.jsx';
+import { ObservationInsights } from './ObservationContext.jsx';
+import { FloodAssessmentSiren } from './FloodAssessmentSiren.jsx';
 
 const clamp = value => Math.max(0, Math.min(100, value));
 
