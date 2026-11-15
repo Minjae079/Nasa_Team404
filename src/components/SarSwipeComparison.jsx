@@ -223,7 +223,10 @@ export function SarSwipeComparison({
         </div>
       </div>
       {aiUrl && <p className="sar-ai-caption" aria-hidden={mode !== 'ai'}>
-        <span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.
+        <span aria-hidden="true" />
+        {monitoringSite?.candidateShare === 0
+          ? 'No model candidates above the display threshold.'
+          : 'Blue highlights experimental V1-long flood candidates.'}
       </p>}
       </div>
       <ObservationInsights sceneId={sceneId} scenarioMetrics={monitoringSite?.scenarioMetrics} />

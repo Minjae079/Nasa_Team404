@@ -214,5 +214,32 @@
       "waterHistory": 24,
       "relativeElevation": -1.0
     }
+  },
+  {
+    "slug": "chicago",
+    "id": "nisar-chicago-2026-09-28-2026-10-10",
+    "title": "Chicago",
+    "lat": 41.83531,
+    "lng": -87.627,
+    "bounds": [
+      -87.689149,
+      41.788834,
+      -87.564929,
+      41.881733
+    ],
+    "level": 3,
+    "before": {
+      "observed_at": "2026-09-28"
+    },
+    "after": {
+      "observed_at": "2026-10-10"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 127,
+      "waterHistory": 9,
+      "relativeElevation": -1.6
+    }
   }
 ]
