@@ -134,29 +134,14 @@ function formatMetric(key, metric) {
 }
 
 // Keep scientific interpretation distinct from flood assessment.
-function metricDescription(key, metric) {
-  const source = metric?.source_name || 'Source unavailable';
-
+function metricDescription(key) {
   switch (key) {
     case 'rainfall':
-      return (
-        `7-day satellite rainfall estimate at the reference point. ` +
-        `Not a scene-wide average. Source: ${source}.`
-      );
-
+      return '7-day rainfall at this point.';
     case 'waterHistory':
-      return (
-        `Historical frequent-water area within 2 km. ` +
-        `Coverage validation incomplete; not flood probability. ` +
-        `Source: ${source}.`
-      );
-
+      return 'Historical water coverage within 2 km; not flood probability.';
     case 'relativeElevation':
-      return (
-        `100 m center compared with the 500 m–2 km ` +
-        `surrounding ring. Not flood depth. Source: ${source}.`
-      );
-
+      return 'Height relative to nearby terrain; not flood depth.';
     default:
       return 'Environmental context only.';
   }
@@ -213,7 +198,7 @@ function InsightSymbol({ kind }) {
   );
 }
 
-// Keep the existing floating popover behavior and layout.
+// Show descriptions only while the pointer is over an icon.
 function InsightTrigger({
   label,
   ariaLabel,
@@ -226,11 +211,9 @@ function InsightTrigger({
   const tooltipId = useId();
 
   const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [pinned, setPinned] = useState(false);
   const [position, setPosition] = useState(null);
 
-  const visible = hovered || focused || pinned;
+  const visible = hovered;
 
   useEffect(() => {
     if (!visible) return;
@@ -272,15 +255,8 @@ function InsightTrigger({
       setPosition({ left, top, width });
     };
 
-    const dismiss = event => {
-      if (!buttonRef.current?.contains(event.target)) {
-        setPinned(false);
-      }
-    };
-
     const escape = event => {
       if (event.key === 'Escape') {
-        setPinned(false);
         setHovered(false);
         buttonRef.current?.blur();
       }
@@ -290,13 +266,11 @@ function InsightTrigger({
 
     window.addEventListener('resize', place);
     window.addEventListener('scroll', place, true);
-    document.addEventListener('pointerdown', dismiss);
     document.addEventListener('keydown', escape);
 
     return () => {
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
-      document.removeEventListener('pointerdown', dismiss);
       document.removeEventListener('keydown', escape);
     };
   }, [visible]);
@@ -316,9 +290,7 @@ function InsightTrigger({
           }
         }}
         onPointerLeave={() => setHovered(false)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onClick={() => setPinned(value => !value)}
+        onPointerCancel={() => setHovered(false)}
       >
         {children}
       </button>
@@ -351,8 +323,8 @@ export function ObservationSiren() {
       <InsightTrigger
         label="Flood assessment"
         ariaLabel="Flood assessment: not verified"
-        summary="Flood detection not verified."
-        detail="SAR backscatter changes alone cannot confirm flooding."
+        summary="Not verified."
+        detail="SAR changes alone do not confirm flooding."
         className="sar-siren-button"
       >
         <svg
@@ -443,7 +415,7 @@ export function ObservationInsights({ sceneId }) {
 
         if (value !== null) {
           summary = value;
-          detail = metricDescription(item.key, metric);
+          detail = metricDescription(item.key);
         } else if (context.state === 'loading') {
           summary = 'Loading data…';
           detail = 'Retrieving regional environmental context.';
