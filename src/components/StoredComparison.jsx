@@ -127,6 +127,7 @@ export function StoredComparison({ point, onClose }) {
         }}
       >
         <SarSwipeComparison
+          sceneId={result.id}
           key={`${result.id}:${revision}:${result.images.before}`}
           title="Sacramento Delta"
           point={point}
