@@ -117,5 +117,5 @@ button:disabled { opacity: .5; transform: none; }
   .map-toolbar, .scene-globe.is-detail .coordinate-search { left: clamp(24px, 4.35vw, 76px); }
 }
 
-.topbar .team-label { display: inline; color: #c4d3d7; }
-@media (max-width: 800px) { .topbar .team-label { font-size: 8px; letter-spacing: .08em; } }
+.topbar .team-label { display: inline; color: #c4d3d7; font-size: 11px; }
+@media (max-width: 800px) { .topbar .team-label { font-size: 9px; letter-spacing: .08em; } }

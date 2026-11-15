@@ -1,5 +1,5 @@
 
-export function Topbar({ onOpenModelResults }) {
+export function Topbar() {
   return (<header className="topbar">
       <button className="brand" id="brandHome" aria-label="Return to the globe">
         <span className="brand-icon" aria-hidden="true"><span className="brand-orbit"></span><span className="brand-dot"></span></span>
@@ -12,6 +12,5 @@ export function Topbar({ onOpenModelResults }) {
         <a className="topnav-item" href="https://search.asf.alaska.edu/" target="_blank" rel="noopener noreferrer">NASA / ASF data <span aria-hidden="true">↗</span></a>
       </nav>
       <button className="mobile-about" id="mobileAbout" type="button" aria-label="About this project">About <span aria-hidden="true">ⓘ</span></button>
-      <button className="model-results-launch" type="button" onClick={onOpenModelResults}>Model results</button>
     </header>);
 }

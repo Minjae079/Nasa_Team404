@@ -50,6 +50,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   let homeMotionPending = false;
   let motionInterrupted = false;
   let introActive = false;
+  let mapLoaded = false;
+  let monitoringVisible = false;
   function stopGlobeMotion() {
     homeMotionPending = false;
     introActive = false;
@@ -94,6 +96,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           camera = { center: [((lng - elapsed * ROTATION_RATE + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
+        if (!introActive) revealMonitoring();
       }
       rotationFrame = window.requestAnimationFrame(rotate);
     }
@@ -147,14 +150,16 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
             {
               id: "high-risk-observation-outline", type: "line", source: "high-risk-areas",
               filter: ["==", ["geometry-type"], "Polygon"],
-              paint: { "line-color": "#ff5657", "line-width": 2.5 },
+              paint: { "line-color": "#ff5657", "line-width": 2.5,
+                "line-opacity": 0, "line-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
             {
               id: "high-risk-location-halo", type: "circle", source: "high-risk-areas",
               filter: ["==", ["geometry-type"], "Point"], maxzoom: 7,
               paint: { "circle-radius": 19, "circle-opacity": 0,
                 "circle-stroke-color": "#ff5657", "circle-stroke-width": 2,
-                "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 7, 0] },
+                "circle-stroke-opacity": 0,
+                "circle-stroke-opacity-transition": { duration: reducedMotion.matches ? 0 : 650 } },
             },
           ],
           sky: { "sky-color": "#050b16", "horizon-color": "#bddfff",
@@ -193,6 +198,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         if (updatingMapFrame) return;
         cameraDestination = null;
         syncZoomMode();
+        if (motionInterrupted && !introActive) revealMonitoring();
         if (homeMotionPending && mode === "globe") {
           homeMotionPending = false;
           startGlobeRotation();
@@ -208,10 +214,13 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else flyTo(lat, lng);
       });
       map.on("load", () => {
+        mapLoaded = true;
         applyBasemap();
         installRasterLayers();
         if (!motionInterrupted && mode === "globe" && !reducedMotion.matches) {
           startGlobeRotation({ intro: true });
+        } else if (!map.isMoving?.()) {
+          revealMonitoring();
         }
       });
       map.on("error", event => {
@@ -219,23 +228,36 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         $("mapLoadStatus").hidden = false;
         $("mapLoadStatus").textContent = "Some map tiles could not load. Check your connection and try zooming again.";
       });
-      map.on("idle", () => { $("mapLoadStatus").hidden = true; });
-      addMonitoringPins();
+      map.on("idle", () => {
+        $("mapLoadStatus").hidden = true;
+        if (motionInterrupted && !introActive) revealMonitoring();
+      });
       listen(window, "resize", resizeGlobe);
     } catch (error) {
       console.error("Unable to create Earth map", error);
       fallback.hidden = false;
     }
   }
-  function addMonitoringPins() {
-    if (disposed || !map || monitoringPins.length) return;
+  function revealMonitoring() {
+    if (disposed || !map || !mapLoaded || monitoringVisible) return;
+    monitoringVisible = true;
+    if (highRiskAreas.features.length) {
+      map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
+      map.setPaintProperty("high-risk-location-halo", "circle-stroke-opacity",
+        ["interpolate", ["linear"], ["zoom"], 4, 1, 7, 0]);
+    }
     for (const site of monitoringSites) {
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'monitoring-site-pin';
-      element.setAttribute('aria-label', `Open NISAR observations for ${site.title}`);
+      element.setAttribute('aria-label', site.level === 3
+        ? `High screening level. Open NISAR observations for ${site.title}`
+        : `Open NISAR observations for ${site.title}`);
       element.dataset.level = String(site.level ?? 0);
       element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
+      if (site.level === 3) {
+        element.innerHTML += '<span class="monitoring-pin-warning" aria-hidden="true">!</span>';
+      }
       listen(element, 'pointerdown', event => {
         event.stopPropagation();
         if (!event.isPrimary || event.button !== 0) return;

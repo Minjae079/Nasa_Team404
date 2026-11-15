@@ -497,3 +497,27 @@
   .scene-globe .sar-swipe-dialog .sar-swipe-dates { font-size: 12px; }
   .sar-swipe-dates strong { margin-right: 4px; }
 }
+
+
+.monitoring-pin-warning {
+  position: absolute;
+  inset: auto 0 100%;
+  color: #ff5c59;
+  font: 800 23px/1 system-ui, sans-serif;
+  text-align: center;
+  text-shadow: 0 2px 5px #000, 0 0 10px #ff56577d;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .monitoring-site-pin svg { animation: monitoring-pin-enter 700ms ease-out both; }
+  .monitoring-pin-warning {
+    animation: monitoring-alert-rise 4.4s ease-out 650ms infinite both;
+  }
+}
+@keyframes monitoring-pin-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes monitoring-alert-rise {
+  0% { opacity: 0; transform: translateY(3px) scale(.82); }
+  10% { opacity: 1; transform: translateY(-6px) scale(1); }
+  27% { opacity: .9; transform: translateY(-13px) scale(1); }
+  46%, 100% { opacity: 0; transform: translateY(-24px) scale(.96); }
+}

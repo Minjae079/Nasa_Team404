@@ -397,7 +397,7 @@ test('typed coordinates reuse geographic selection and the marker; invalid value
 });
 
 
-test('a visible monitoring pin opens the comparison from the initial globe zoom', () => {
+test('monitoring pins appear after the intro and open the comparison with one click', () => {
   const pins = [];
   const selections = [];
   let stopped = false;
@@ -411,6 +411,8 @@ test('a visible monitoring pin opens the comparison from the initial globe zoom'
     getPitch() { return 0; }
     getLayer() { return false; }
     stop() { stopped = true; }
+    jumpTo({ zoom }) { if (zoom !== undefined) this.zoom = zoom; }
+    setPaintProperty(layer, property, value) { this.paint ??= {}; this.paint[layer + property] = value; }
     easeTo(options) { this.flight = options; }
   }
   class Marker {
@@ -432,16 +434,28 @@ test('a visible monitoring pin opens the comparison from the initial globe zoom'
   controller.initGlobe();
   const map = controller.state().map;
   assert.ok(map.getZoom() < 0);
-  assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
-  assert.equal(pins[0].options.anchor, 'bottom');
-  const clicks = pins[0].options.element.events;
+  assert.equal(pins.length, 0);
   const areas = map.options.style.sources['high-risk-areas'].data.features;
   assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['Point', 'Polygon']);
   assert.deepEqual(Array.from(areas[0].geometry.coordinates), [high.lng, high.lat]);
   map.events.load();
   assert.equal(frames.size, 1);
+  function tick(time) {
+    const [id, callback] = frames.entries().next().value;
+    frames.delete(id);
+    callback(time);
+  }
+  for (let time = 0; time < 2800; time += 16) tick(time);
+  assert.equal(pins.length, 0);
+  assert.equal(map.paint, undefined);
+  tick(2800);
+  assert.equal(pins.length, 2);
+  assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
+  assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
+  assert.equal(pins[0].options.anchor, 'bottom');
+  const clicks = pins[0].options.element.events;
   clicks.pointerdown({ isPrimary: true, button: 0, stopPropagation() {} });
-  assert.equal(stopped, true);
+  assert.equal(stopped, false);
   assert.equal(frames.size, 0);
   clicks.click({ stopPropagation() {} });
   assert.deepEqual(selections, [[site.lat, site.lng]]);

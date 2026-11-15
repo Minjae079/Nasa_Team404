@@ -49,7 +49,8 @@ test('React shell, Vite HTTP assets and API adapter work without exposing env fi
     }
     assert.ok(markup.indexOf('id="compareScene"') < markup.indexOf('id="mapScene"'));
     assert.ok(markup.includes('View model results'));
-    assert.ok(markup.includes('id="model-results-title"'));
+    assert.ok(!markup.includes('id="model-results-title"'));
+    assert.ok(markup.includes('TEAM 404'));
   } finally {
     await server?.close();
     globalThis.fetch = nativeFetch;

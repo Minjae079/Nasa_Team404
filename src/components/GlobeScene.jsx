@@ -2,7 +2,7 @@ import { CoordinateSearch } from './CoordinateSearch.jsx';
 import { Starfield } from './Starfield.jsx';
 import { ComparisonScene } from './ComparisonScene.jsx';
 
-export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSelectCoordinates }) {
+export function GlobeScene({ selectedPoint, mapReady, onSelectCoordinates }) {
   return (<section id="globeScene" className="scene scene-globe" aria-label="Interactive 3D Earth">
         <Starfield />
         <CoordinateSearch ready={mapReady} onSelect={onSelectCoordinates} />
@@ -22,7 +22,7 @@ export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSele
           <div className="hero-actions">
             <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>
-          <button className="hero-results-link" type="button" onClick={onOpenModelResults}>View model results <span aria-hidden="true">↗</span></button></div>
+          </div>
           <div className="hero-meta">
             <div><span className="meta-label">PRIMARY STUDY AREA</span><span className="meta-value">Chicago, Illinois <span className="meta-arrow">↗</span></span></div>
             <div><span className="meta-label">SATELLITE PROGRAM</span><span className="meta-value">NASA–ISRO NISAR</span></div>
