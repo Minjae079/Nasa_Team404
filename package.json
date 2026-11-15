@@ -5,6 +5,9 @@
   "type": "module",
   "description": "React Earth explorer and NASA NISAR model-output viewer",
   "scripts": {
+    "prepare:flood-demo": "mkdir -p public && tar -xzf flood-demo-assets.tar.gz -C public",
+    "predev": "npm run prepare:flood-demo",
+    "prebuild": "npm run prepare:flood-demo",
     "dev": "node dev-server.mjs",
     "test": "node --test",
     "build": "vite build",

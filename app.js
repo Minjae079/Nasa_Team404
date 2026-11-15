@@ -670,6 +670,12 @@ export function createExplorer(maplibregl, { onSelection, onCamera } = {}) {
   return {
     start,
     selectCoordinates,
+    openPreparedComparison(lat, lng) {
+      if (disposed || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return false;
+      setBasemap("satellite");
+      void openComparison(lat, lng);
+      return true;
+    },
     isReady: () => !!map && !disposed,
     destroy() {
       disposed = true;
