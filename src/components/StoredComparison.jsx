@@ -29,6 +29,7 @@ export function StoredComparison({ point, onClose }) {
   const automaticRetry = useRef(false);
   const resultId = useRef('');
   useEffect(() => {
+    if (site?.screening === 'scenario') return;
     const controller = new AbortController();
     let refreshTimer;
     setPreview(null);
@@ -55,7 +56,7 @@ export function StoredComparison({ point, onClose }) {
       if (!controller.signal.aborted) setState(previous => ({ ...previous, kind: error.code === 'SUPABASE_NOT_CONFIGURED' ? 'setup' : 'error' }));
     });
     return () => { controller.abort(); clearTimeout(refreshTimer); };
-  }, [point.lat, point.lng, selectedId, revision]);
+  }, [point.lat, point.lng, selectedId, revision, site]);
   useEffect(() => {
     if (preview && !dialog.current.open) dialog.current.showModal();
   }, [preview]);
@@ -73,8 +74,9 @@ export function StoredComparison({ point, onClose }) {
     error: 'Unable to load stored results. Please try again.',
     ready: 'Published SAR imagery · SAR signal change is not verified flood detection.',
   };
-  const usePackaged = site && !state.result && ['empty', 'disabled', 'setup', 'error'].includes(state.kind);
-  const result = state.result ?? (usePackaged ? { ...site, images: monitoringAssets(site) } : null);
+  const usePackaged = site && (site.screening === 'scenario' ||
+    (!state.result && ['empty', 'disabled', 'setup', 'error'].includes(state.kind)));
+  const result = usePackaged ? { ...site, images: monitoringAssets(site) } : state.result;
   const matchedSite = site?.id === result?.id ? site : null;
   const floating = result && !result.synthetic && (matchedSite || result.id === VERIFIED_SWIPE_ID);
   return <div className={`stored-comparison${floating ? ' has-floating-console' : ''}`}>

@@ -304,13 +304,14 @@ export function InsightTrigger({
 }
 
 // Live regional context from the scene-context API.
-export function ObservationInsights({ sceneId }) {
+export function ObservationInsights({ sceneId, scenarioMetrics }) {
   const [context, setContext] = useState({
     state: 'loading',
     metrics: {}
   });
 
   useEffect(() => {
+    if (scenarioMetrics) return;
     if (!sceneId) {
       setContext({
         state: 'empty',
@@ -359,7 +360,7 @@ export function ObservationInsights({ sceneId }) {
     // Cancel stale requests when the scene changes
     // or the panel is unmounted.
     return () => controller.abort();
-  }, [sceneId]);
+  }, [sceneId, scenarioMetrics]);
 
   return (
     <aside
@@ -367,11 +368,13 @@ export function ObservationInsights({ sceneId }) {
       aria-label="Regional context insights"
     >
       {insightItems.map(item => {
-        const metric = context.metrics[item.key];
+        const metric = scenarioMetrics
+          ? { status: 'available', value: scenarioMetrics[item.key], unit: EXPECTED_UNITS[item.key] }
+          : context.metrics[item.key];
         const value = formatMetric(item.key, metric);
 
         const summary = value ?? (context.state === 'loading' ? 'Loading…' : 'Unavailable');
-        const text = `${item.label} · ${summary}`;
+        const text = `${item.label} · ${summary}${scenarioMetrics ? ' · Demo' : ''}`;
 
         return (
           <div

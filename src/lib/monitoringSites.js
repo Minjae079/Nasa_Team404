@@ -1,3 +1,5 @@
+import scenarios from './monitoringScenarios.json' with { type: 'json' };
+
 const dates = (before, after) => ({
   before: { observed_at: before },
   after: { observed_at: after },
@@ -22,6 +24,7 @@ export const monitoringSites = [
     bounds: [32.975, -24.566, 33.075, -24.474],
     ...dates('2026-01-05', '2026-01-17'),
   },
+  ...scenarios,
 ];
 
 export function monitoringSiteAt({ lat, lng }) {

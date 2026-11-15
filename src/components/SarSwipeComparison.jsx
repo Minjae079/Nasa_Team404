@@ -226,7 +226,7 @@ export function SarSwipeComparison({
         <span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.
       </p>}
       </div>
-      <ObservationInsights sceneId={sceneId} />
+      <ObservationInsights sceneId={sceneId} scenarioMetrics={monitoringSite?.scenarioMetrics} />
       </div>
 
       {(failed || mismatch || overlayFailed || overlayMismatch || serviceState === 'error' || serviceState === 'setup') && <button className="sar-retry" type="button" onClick={onRefresh}>Retry images</button>}

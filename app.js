@@ -304,8 +304,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'monitoring-site-pin';
+      const warning = site.screening === 'scenario' ? 'High demo screening' : 'High screening level';
       element.setAttribute('aria-label', site.level === 3
-        ? `High screening level. Open NISAR observations for ${site.title}`
+        ? `${warning}. Open NISAR observations for ${site.title}`
         : `Open NISAR observations for ${site.title}`);
       element.dataset.level = String(site.level ?? 0);
       element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';

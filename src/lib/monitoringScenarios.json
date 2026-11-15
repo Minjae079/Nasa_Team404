@@ -1,0 +1,218 @@
+[
+  {
+    "slug": "assam-east",
+    "id": "nisar-assam-east-2026-07-10-2026-07-22",
+    "title": "Upper Assam · Eastern Reach",
+    "lat": 27.04,
+    "lng": 95.05,
+    "bounds": [
+      95.023743,
+      27.016526,
+      95.076172,
+      27.063474
+    ],
+    "level": 3,
+    "before": {
+      "observed_at": "2026-07-10"
+    },
+    "after": {
+      "observed_at": "2026-07-22"
+    },
+    "candidateShare": 2.42,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 153,
+      "waterHistory": 19,
+      "relativeElevation": -1.8
+    }
+  },
+  {
+    "slug": "barataria",
+    "id": "nisar-barataria-2026-08-20-2026-09-01",
+    "title": "Upper Barataria Basin",
+    "lat": 29.88,
+    "lng": -90.23,
+    "bounds": [
+      -90.257152,
+      29.856349,
+      -90.202915,
+      29.903614
+    ],
+    "level": 1,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.23,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 17,
+      "waterHistory": 31,
+      "relativeElevation": -0.4
+    }
+  },
+  {
+    "slug": "lake-maurepas",
+    "id": "nisar-lake-maurepas-2026-08-20-2026-09-01",
+    "title": "Lake Maurepas",
+    "lat": 30.282,
+    "lng": -90.56,
+    "bounds": [
+      -90.587153,
+      30.258377,
+      -90.532822,
+      30.305531
+    ],
+    "level": 2,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 57,
+      "waterHistory": 39,
+      "relativeElevation": -0.8
+    }
+  },
+  {
+    "slug": "limpopo-south",
+    "id": "nisar-limpopo-south-2026-01-05-2026-01-17",
+    "title": "Lower Limpopo · Southern Reach",
+    "lat": -24.64,
+    "lng": 33.08,
+    "bounds": [
+      33.054732,
+      -24.663143,
+      33.105354,
+      -24.616875
+    ],
+    "level": 3,
+    "before": {
+      "observed_at": "2026-01-05"
+    },
+    "after": {
+      "observed_at": "2026-01-17"
+    },
+    "candidateShare": 21.32,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 96,
+      "waterHistory": 29,
+      "relativeElevation": -1.9
+    }
+  },
+  {
+    "slug": "louisiana-delta-east",
+    "id": "nisar-louisiana-delta-east-2026-08-20-2026-09-01",
+    "title": "Southeast Louisiana · Wetlands",
+    "lat": 30.05,
+    "lng": -89.77,
+    "bounds": [
+      -89.797285,
+      30.026237,
+      -89.742759,
+      30.073673
+    ],
+    "level": 3,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 11.36,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 81,
+      "waterHistory": 35,
+      "relativeElevation": -0.7
+    }
+  },
+  {
+    "slug": "mississippi-river-bend",
+    "id": "nisar-mississippi-river-bend-2026-08-20-2026-09-01",
+    "title": "Lower Mississippi · River Bend",
+    "lat": 30.45,
+    "lng": -91.19,
+    "bounds": [
+      -91.217087,
+      30.426519,
+      -91.162932,
+      30.473438
+    ],
+    "level": 1,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 22,
+      "waterHistory": 12,
+      "relativeElevation": 0.7
+    }
+  },
+  {
+    "slug": "new-orleans",
+    "id": "nisar-new-orleans-2026-08-20-2026-09-01",
+    "title": "New Orleans",
+    "lat": 29.958,
+    "lng": -90.1,
+    "bounds": [
+      -90.127124,
+      29.934337,
+      -90.072788,
+      29.981651
+    ],
+    "level": 2,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 118,
+      "waterHistory": 23,
+      "relativeElevation": -0.9
+    }
+  },
+  {
+    "slug": "pearl-river",
+    "id": "nisar-pearl-river-2026-08-20-2026-09-01",
+    "title": "Lower Pearl River",
+    "lat": 30.47,
+    "lng": -89.7,
+    "bounds": [
+      -89.727423,
+      30.446286,
+      -89.672616,
+      30.49376
+    ],
+    "level": 2,
+    "before": {
+      "observed_at": "2026-08-20"
+    },
+    "after": {
+      "observed_at": "2026-09-01"
+    },
+    "candidateShare": 0.0,
+    "screening": "scenario",
+    "scenarioMetrics": {
+      "rainfall": 73,
+      "waterHistory": 24,
+      "relativeElevation": -1.0
+    }
+  }
+]
