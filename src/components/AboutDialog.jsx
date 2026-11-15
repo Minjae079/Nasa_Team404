@@ -30,6 +30,13 @@ export function AboutDialog() {
           </section>
         </div>
 
+        <section className="guide-model">
+          <h3>AI model · Temporal U-Net</h3>
+          <p>We trained a pixel segmentation model on labeled before-and-after Sentinel-1 radar pairs from
+            GEOID-Flood (VV/VH). The labels distinguish background, permanent water, and flooded water.
+            We applied the model to NISAR before-and-after pairs (HH/HV) to highlight possible new inundation.</p>
+        </section>
+
         <ul className="guide-legend" aria-label="Globe marker colors">
           <li data-level="0">Observation shortcut</li>
           <li data-level="1">Low screening</li>

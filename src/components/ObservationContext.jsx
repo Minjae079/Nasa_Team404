@@ -30,7 +30,7 @@ export function ObservationContext({
   context = {}
 }) {
   const observations = [
-    ['Satellite', 'NASA–ISRO NISAR'],
+    ['Satellite', 'NISAR'],
     ['Product', 'L2 GCOV'],
     ['Band / Polarization', 'L-band / HH'],
     ['Frame', '069'],

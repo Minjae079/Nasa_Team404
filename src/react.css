@@ -151,6 +151,15 @@ button:disabled { opacity: .5; transform: none; }
 }
 .guide-card p + p { margin-top: 8px; }
 .guide-card strong { color: #dce9e3; font-weight: 650; }
+.guide-model {
+  margin-top: 10px;
+  padding: 11px 14px;
+  border-left: 2px solid #83a9a3;
+  background: #102329;
+  border-radius: 0 8px 8px 0;
+}
+.guide-model h3 { margin: 0 0 4px; color: #eaf3ee; font-size: 14px; }
+.guide-model p { margin: 0; color: #a7bac1; font-size: 12px; line-height: 1.55; }
 .guide-modes { display: grid; gap: 6px; margin: 0; }
 .guide-modes dt { color: #cdebaa; font-size: 12px; font-weight: 700; }
 .guide-legend {

@@ -21,6 +21,7 @@ function frontend(fetch, maplibregl, reduceMotion = true, options = {}) {
   let timerId = 0;
   const context = vm.createContext({
     fetch, console, encodeURIComponent, URL, maplibregl, options,
+    performance: { now: options.now ?? (() => 0) },
     setTimeout: (callback, delay) => { timers.set(++timerId, callback); timerDelays.set(timerId, delay); return timerId; },
     clearTimeout: id => timers.delete(id),
     window: { innerWidth: options.viewportWidth ?? 1280, innerHeight: 840, requestAnimationFrame: callback => { frames.set(++frameId, callback); return frameId; },
@@ -303,7 +304,11 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   assert.equal(still.flight, undefined);
   assert.equal(reduced.frames.size, 0);
   assert.equal(pins.length, pinCount);
-  const interrupted = frontend(async () => ({ok:false}), {Map, Marker}, false);
+  class LngLat {
+    constructor(lng, lat) { this.lng = lng; this.lat = lat; }
+  }
+  let now = 1000;
+  const interrupted = frontend(async () => ({ok:false}), {Map, Marker, LngLat}, false, { now: () => now });
   interrupted.controller.initGlobe();
   const interruptedMap = interrupted.controller.state().map;
   interruptedMap.events.load();
@@ -330,11 +335,25 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   completeDelay();
   assert.equal(interrupted.frames.size, 1);
   interruptedMap.events.wheel();
+  interruptedMap.isZooming = () => true;
+  interruptedMap.isMoving = () => true;
+  const update = interruptedMap.options.transformCameraUpdate;
+  const proposed = { center: new LngLat(-90, 35), zoom: 3 };
+  assert.equal(update(proposed).center.lng, -90);
+  now += 50;
+  const rotated = update(proposed);
+  assert.equal(rotated.center.lng, -90.3);
+  assert.equal(rotated.center.lat, 35);
+  assert.equal(rotated.zoom, undefined);
+  assert.equal(interrupted.frames.size, 0);
   interruptedMap.events.zoom();
+  interruptedMap.isZooming = () => false;
+  interruptedMap.isMoving = () => false;
   interruptedMap.events.moveend();
-  assert.equal(interrupted.timerDelays.get([...interrupted.timers.keys()][0]),100);
+  assert.equal(interrupted.timerDelays.get([...interrupted.timers.keys()][0]),0);
   completeDelay();
   assert.equal(interrupted.frames.size, 1);
+  assert.equal(update({ ...proposed, zoom: interruptedMap.getZoom() }).center, undefined);
 });
 
 test('home camera padding follows responsive layout and reserves the wider comparison panel', async () => {

@@ -75,6 +75,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   let resumeAfterInteraction = false;
   let rotationResumeTimer;
   let rotationResumesAfterZoom = false;
+  let lastZoomRotationTime = null;
+  let zoomRotationOffset = 0;
   function stopGlobeMotion() {
     clearTimeout(rotationResumeTimer);
     resumeAfterInteraction = false;
@@ -91,9 +93,9 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationResumeTimer = setTimeout(() => {
       if (disposed || globeGestureActive || mode !== "globe" || map?.isMoving?.()) return;
       resumeAfterInteraction = false;
-      startGlobeRotation({ rampMs: rotationResumesAfterZoom ? 220 : 400 });
+      startGlobeRotation({ rampMs: rotationResumesAfterZoom ? 0 : 400 });
       rotationResumesAfterZoom = false;
-    }, rotationResumesAfterZoom ? 100 : 450);
+    }, rotationResumesAfterZoom ? 0 : 450);
   }
   function startGlobeRotation({ intro = false, rampMs = 400 } = {}) {
     if (disposed || reducedMotion.matches || mode !== "globe" || rotationFrame !== null) return;
@@ -105,7 +107,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       if (disposed || reducedMotion.matches || mode !== "globe") return;
       const elapsed = previousRotationTime === null ? 0 : Math.min(time - previousRotationTime, 64);
       previousRotationTime = time;
-      if (!document.hidden) {
+      if (!document.hidden && (introActive || !map.isMoving?.())) {
         let camera;
         if (introActive) {
           introElapsed += elapsed;
@@ -131,7 +133,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         } else {
           const { lng, lat } = map.getCenter();
           rotationElapsed += elapsed;
-          const speed = ROTATION_RATE * Math.min(rotationElapsed / rampMs, 1);
+          const speed = ROTATION_RATE * (rampMs > 0 ? Math.min(rotationElapsed / rampMs, 1) : 1);
           camera = { center: [((lng - elapsed * speed + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
@@ -157,13 +159,26 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     }),
   };
 
+  function rotateDuringZoom({ center, zoom }) {
+    if (!map || mode !== "globe" || introActive || document.hidden || reducedMotion.matches) return {};
+    if (!map.isZooming?.() && zoom === map.getZoom()) return {};
+    // Use the proposed camera so the native zoom keeps its timing and focal point.
+    // A separate jumpTo here would cancel the zoom on each animation frame.
+    const now = performance.now();
+    if (lastZoomRotationTime !== null) {
+      zoomRotationOffset += Math.min(now - lastZoomRotationTime, 64) * ROTATION_RATE;
+    }
+    lastZoomRotationTime = now;
+    return { center: new maplibregl.LngLat(center.lng - zoomRotationOffset, center.lat) };
+  }
+
   // A single MapLibre canvas renders the globe and local map.
   function initGlobe() {
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
         container: "globeViz", ...START, ...(reducedMotion.matches ? { zoom: homeZoom() } : INTRO_CAMERA), minZoom: INTRO_ZOOM, maxZoom: 19,
-        attributionControl: { compact: true }, doubleClickZoom: false,
+        attributionControl: { compact: true }, doubleClickZoom: false, transformCameraUpdate: rotateDuringZoom,
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
@@ -251,6 +266,8 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         }
       });
       map.on("moveend", () => {
+        lastZoomRotationTime = null;
+        zoomRotationOffset = 0;
         if (updatingMapFrame) return;
         cameraDestination = null;
         syncZoomMode();

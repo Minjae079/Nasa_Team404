@@ -25,7 +25,7 @@ export function GlobeScene({ selectedPoint, mapReady, onSelectCoordinates, onClo
           </div>
           <div className="hero-meta">
             <div><span className="meta-label">PRIMARY STUDY AREA</span><span className="meta-value">Chicago, Illinois <span className="meta-arrow">↗</span></span></div>
-            <div><span className="meta-label">SATELLITE PROGRAM</span><span className="meta-value">NASA–ISRO NISAR</span></div>
+            <div><span className="meta-label">SATELLITE PROGRAM</span><span className="meta-value">NISAR</span></div>
           </div>
         </div>
 
