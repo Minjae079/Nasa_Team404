@@ -9,6 +9,7 @@ export const monitoringSites = [
   {
     id: 'nisar-sacdelta-hh-20261015-20261027-001', slug: 'sacramento',
     title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 2,
+    preferPackagedImagery: true,
     bounds: [-121.856, 37.795, -121.391, 38.205],
     ...dates('2026-10-15', '2026-10-27'),
   },
