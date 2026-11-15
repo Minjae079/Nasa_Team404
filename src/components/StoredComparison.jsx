@@ -3,8 +3,6 @@ import { fetchJson } from '../lib/api.js';
 import { monitoringAssets, monitoringSiteAt } from '../lib/monitoringSites.js';
 import { SarSwipeComparison } from './SarSwipeComparison.jsx';
 
-const VERIFIED_SWIPE_ID = 'nisar-sacdelta-hh-20261015-20261027-001';
-
 export function StoredComparison({ point, onClose }) {
   const site = monitoringSiteAt(point);
   const [state, setState] = useState({ kind: 'loading', result: null, available: [] });
@@ -12,6 +10,8 @@ export function StoredComparison({ point, onClose }) {
   const [revision, setRevision] = useState(0);
   const automaticRetry = useRef(false);
   const resultId = useRef('');
+  const showPackagedFirst = !selectedId && site?.preferPackagedImagery &&
+    (point.siteId === site.id || (point.lat === site.lat && point.lng === site.lng));
   useEffect(() => {
     if (site?.screening === 'scenario') return;
     const controller = new AbortController();
@@ -33,7 +33,7 @@ export function StoredComparison({ point, onClose }) {
         available: result ? data.available || [] : []
       });
       // Renew once when expiry approaches; no polling while a result is absent.
-      if (result && Number.isFinite(Date.parse(data.urls_expire_at))) {
+      if (result && !showPackagedFirst && Number.isFinite(Date.parse(data.urls_expire_at))) {
         refreshTimer = setTimeout(() => {
           setSelectedId(result.id);
           setRevision(value => value + 1);
@@ -43,11 +43,12 @@ export function StoredComparison({ point, onClose }) {
       if (!controller.signal.aborted) setState(previous => ({ ...previous, kind: error.code === 'SUPABASE_NOT_CONFIGURED' ? 'setup' : 'error' }));
     });
     return () => { controller.abort(); clearTimeout(refreshTimer); };
-  }, [point.lat, point.lng, selectedId, revision, site]);
+  }, [point.lat, point.lng, selectedId, revision, site, showPackagedFirst]);
   function refresh(automatic = false) {
     if (automatic && automaticRetry.current) return;
     automaticRetry.current = automatic;
-    if (resultId.current) setSelectedId(resultId.current);
+    if (showPackagedFirst) setSelectedId(site.id);
+    else if (resultId.current) setSelectedId(resultId.current);
     setRevision(value => value + 1);
   }
   const messages = {
@@ -58,17 +59,21 @@ export function StoredComparison({ point, onClose }) {
     error: 'Unable to load stored results. Please try again.',
     ready: 'Published SAR imagery · SAR signal change is not verified flood detection.',
   };
-  const usePackaged = site && (site.screening === 'scenario' ||
+  const usePackaged = site && (showPackagedFirst || site.screening === 'scenario' ||
     (!state.result && ['empty', 'disabled', 'setup', 'error'].includes(state.kind)));
   const result = usePackaged ? { ...site, images: monitoringAssets(site) } : state.result;
   const matchedSite = site?.id === result?.id ? site : null;
-  const sceneSelector = !usePackaged && state.available.length > 1 && result && (
+  const packagedOutsideIndex = showPackagedFirst && !state.available.some(item => item.id === site.id);
+  const canChooseDates = !usePackaged || showPackagedFirst;
+  const sceneSelector = canChooseDates && result &&
+    state.available.length + Number(packagedOutsideIndex) > 1 && (
     <label className="sar-scene-selector">
       Observation dates
       <select value={result.id} onChange={event => {
         automaticRetry.current = false;
         setSelectedId(event.target.value);
       }}>
+        {packagedOutsideIndex && <option value={site.id}>{site.before.observed_at} / {site.after.observed_at}</option>}
         {state.available.map(item => (
           <option key={item.id} value={item.id}>{item.before.slice(0, 10)} / {item.after.slice(0, 10)}</option>
         ))}

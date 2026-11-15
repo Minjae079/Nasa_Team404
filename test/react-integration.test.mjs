@@ -4,6 +4,25 @@ import { createServer } from 'vite';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
 
+test('Sacramento requests its bundled image pair before the catalog responds', async () => {
+  const server = await createServer({ configFile: false, server: { middlewareMode: true, ws: false } });
+  try {
+    const { StoredComparison } = await server.ssrLoadModule('/src/components/StoredComparison.jsx');
+    const renderPoint = point => renderToString(createElement(StoredComparison, { point }));
+    const coordinates = { lat: 38, lng: -121.6 };
+    const marker = { ...coordinates, siteId: 'nisar-sacdelta-hh-20261015-20261027-001' };
+    for (const point of [marker, coordinates]) {
+      const markup = renderPoint(point);
+      assert.match(markup, /\/flood-demo\/sacramento\/before_sar\.webp/);
+      assert.match(markup, /\/flood-demo\/sacramento\/after_sar\.webp/);
+      assert.doesNotMatch(markup, /Loading precomputed results/);
+    }
+    assert.match(renderPoint({ lat: 38.1, lng: -121.6 }), /Loading precomputed results/);
+  } finally {
+    await server.close();
+  }
+});
+
 test('React shell, Vite HTTP assets and API adapter work without exposing env files', async () => {
   const keys = ['SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'SARSCOPE_PUBLIC_ANALYSES'];
   const saved = Object.fromEntries(keys.map(key => [key, process.env[key]]));
