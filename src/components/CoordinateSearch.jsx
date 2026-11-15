@@ -31,8 +31,8 @@ export function CoordinateSearch({ ready, onSelect }) {
     </button>
     <form id="coordinate-panel" className="coordinate-panel" hidden={!open} onSubmit={submit} aria-label="Find a location by coordinates" noValidate>
       <div className="coordinate-fields">
-        <label htmlFor="coordinate-latitude">Latitude<input id="coordinate-latitude" type="text" inputMode="decimal" autoComplete="off" spellCheck={false} placeholder="41.83531" value={latitude} onChange={event => {setLatitude(event.target.value);setError('');}} aria-describedby="coordinate-help coordinate-error" aria-invalid={!!error} /></label>
-        <label htmlFor="coordinate-longitude">Longitude<input id="coordinate-longitude" type="text" inputMode="decimal" autoComplete="off" spellCheck={false} placeholder="-87.62700" value={longitude} onChange={event => {setLongitude(event.target.value);setError('');}} aria-describedby="coordinate-help coordinate-error" aria-invalid={!!error} /></label>
+        <label htmlFor="coordinate-latitude">Latitude<input id="coordinate-latitude" type="text" inputMode="text" autoComplete="off" spellCheck={false} placeholder="41.83531" value={latitude} onChange={event => {setLatitude(event.target.value);setError('');}} aria-describedby="coordinate-help coordinate-error" aria-invalid={!!error} /></label>
+        <label htmlFor="coordinate-longitude">Longitude<input id="coordinate-longitude" type="text" inputMode="text" autoComplete="off" spellCheck={false} placeholder="-87.62700" value={longitude} onChange={event => {setLongitude(event.target.value);setError('');}} aria-describedby="coordinate-help coordinate-error" aria-invalid={!!error} /></label>
       </div>
       <p id="coordinate-help">Decimal degrees · North/east +, south/west −</p>
       <p id="coordinate-error" className="coordinate-error" role="alert">{error}</p>
