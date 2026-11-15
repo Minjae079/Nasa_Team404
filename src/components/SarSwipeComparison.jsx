@@ -114,16 +114,16 @@ export function SarSwipeComparison({
         <div className="sar-console-toolbar">
           <div className="sar-console-modes" role="group" aria-label="Analysis mode">
             <button className="sar-swipe-mode" type="button" aria-pressed={mode === 'swipe'} onClick={() => setMode('swipe')}>SWIPE</button>
-            <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>SAR CHANGE</button>
-            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => { setAiFailed(false); setMode('ai'); }}>AI SIGNAL</button>}
+            <button type="button" aria-pressed={mode === 'change'} onClick={() => setMode('change')}>Radar change</button>
+            {aiUrl && <button type="button" aria-pressed={mode === 'ai'} onClick={() => { setAiFailed(false); setMode('ai'); }}>Flood candidates</button>}
           </div>
           <FloodAssessmentSiren sceneId={sceneId} monitoringSite={monitoringSite} />
         </div>
       <div className="sar-imagery-content">
       <div className="sar-imagery-main">
       <div className="sar-swipe-dates">
-        <span><strong>BEFORE</strong> {beforeDate}</span>
-        <span><strong>AFTER</strong> {afterDate}</span>
+        <span><strong>Before</strong> <time dateTime={beforeDate}>{beforeDate}</time></span>
+        <span><strong>After</strong> <time dateTime={afterDate}>{afterDate}</time></span>
       </div>
 
       <div className="sar-swipe-stage">
@@ -171,7 +171,7 @@ export function SarSwipeComparison({
 
           {aiUrl && mode === 'ai' && <>
             <img className="sar-swipe-image" src={aiUrl}
-              alt="Experimental V1-long flood candidate signal on NISAR"
+              alt="Blue experimental V1-long flood candidates over the later NISAR observation"
               draggable={false} onLoad={event => handleLoad('ai', event)}
               onError={() => setAiFailed(true)} />
             {(!sizes.ai || aiFailed) && <div className="sar-swipe-notice" role="status">
@@ -208,7 +208,7 @@ export function SarSwipeComparison({
           )}
         </div>
       </div>
-      {mode === 'ai' && <p className="sar-ai-caption">V1-long · Experimental flood candidates · Unvalidated on NISAR.</p>}
+      {mode === 'ai' && <p className="sar-ai-caption"><span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.</p>}
       </div>
       <ObservationInsights sceneId={sceneId} />
       </div>

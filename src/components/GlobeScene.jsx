@@ -18,7 +18,7 @@ export function GlobeScene({ onOpenModelResults, selectedPoint, mapReady, onSele
         <div id="homeHero" className="hero-content">
           <div className="eyebrow"><span className="eyebrow-line"></span> EXPLORE THE INVISIBLE EARTH</div>
           <h1>See beyond<br /><span>the surface.</span></h1>
-          <p className="hero-description">Explore published SAR imagery.<br />See how Earth changes over time.</p>
+          <p className="hero-description">Select a colored marker to compare NISAR observations and explore flood candidates.</p>
           <div className="hero-actions">
             <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>

@@ -5,6 +5,11 @@ export function Topbar({ onOpenModelResults }) {
         <span className="brand-icon" aria-hidden="true"><span className="brand-orbit"></span><span className="brand-dot"></span></span>
         <span>SAR<span className="brand-secondary">SCOPE</span><span className="brand-period">.</span></span>
       </button>
+      <div className="header-right">
+        <span className="live-dot"></span>
+        <span>NASA DATA PREVIEW · EXPERIMENTAL</span>
+        <span className="version">v0.2</span>
+      </div>
       <nav className="topnav" aria-label="Main navigation">
         <button className="topnav-item is-active" id="navExplore">Explore</button>
         <button className="topnav-item" id="navHow">How it works</button>
@@ -12,10 +17,5 @@ export function Topbar({ onOpenModelResults }) {
       </nav>
       <button className="mobile-about" id="mobileAbout" type="button" aria-label="About this project">About <span aria-hidden="true">ⓘ</span></button>
       <button className="model-results-launch" type="button" onClick={onOpenModelResults}>Model results</button>
-      <div className="header-right">
-        <span className="live-dot"></span>
-        <span>NASA DATA PREVIEW · EXPERIMENTAL</span>
-        <span className="version">v0.2</span>
-      </div>
     </header>);
 }

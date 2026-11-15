@@ -3,6 +3,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const IIT = Object.freeze({ lat: 41.83531, lng: -87.627, name: "Illinois Tech" });
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
+  const INTRO_CAMERA = {
+    center: [START.center[0] + 30, START.center[1] - 14],
+    zoom: INTRO_ZOOM,
+    bearing: -17,
+  };
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.2; // Slightly wider Earth framing while the analysis panel is open.
@@ -60,16 +65,28 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       const elapsed = previousRotationTime === null ? 0 : Math.min(time - previousRotationTime, 64);
       previousRotationTime = time;
       if (!document.hidden) {
-        const center = map.getCenter();
-        const camera = { center: [((center.lng - elapsed * 0.006 + 540) % 360) - 180, center.lat] };
+        let camera;
         if (introActive) {
           introElapsed += elapsed;
-          const progress = Math.min(introElapsed / 3000, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          camera.zoom = progress === 1 ? homeZoom() : INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * eased;
+          const progress = Math.min(introElapsed / 2650, 1);
+          const radius = (1 - progress) ** 2;
+          const angle = progress * Math.PI * .64;
+          const [lng, lat] = START.center;
+          const dx = INTRO_CAMERA.center[0] - lng;
+          const dy = INTRO_CAMERA.center[1] - lat;
+          camera = {
+            center: [
+              lng + radius * (dx * Math.cos(angle) - dy * Math.sin(angle)),
+              lat + radius * (dx * Math.sin(angle) + dy * Math.cos(angle)),
+            ],
+            zoom: INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * (1 - (1 - progress) ** 3),
+            bearing: progress === 1 ? START.bearing : INTRO_CAMERA.bearing * radius,
+          };
           if (progress === 1) introActive = false;
+        } else {
+          const { lng, lat } = map.getCenter();
+          camera = { center: [((lng - elapsed * .006 + 540) % 360) - 180, lat] };
         }
-        // One camera update rotates and approaches together, then keeps rotating.
         map.jumpTo(camera);
       }
       rotationFrame = window.requestAnimationFrame(rotate);
@@ -82,7 +99,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     if (typeof maplibregl === "undefined") { fallback.hidden = false; return; }
     try {
       map = new maplibregl.Map({
-        container: "globeViz", ...START, center: reducedMotion.matches ? START.center : [START.center[0] + 18, START.center[1]], zoom: reducedMotion.matches ? homeZoom() : INTRO_ZOOM, minZoom: INTRO_ZOOM, maxZoom: 19,
+        container: "globeViz", ...START, ...(reducedMotion.matches ? { zoom: homeZoom() } : INTRO_CAMERA), minZoom: INTRO_ZOOM, maxZoom: 19,
         attributionControl: { compact: true }, doubleClickZoom: false,
         style: {
           version: 8, projection: { type: "globe" },
@@ -223,7 +240,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     // Padding is applied to the map camera, never to the canvas with CSS transforms.
     if (mode === "compare") {
       if (desktop) return {
-        left: Math.round(Math.min(620, Math.max(420, window.innerWidth * 0.4))),
+        left: Math.round(Math.min(790, Math.max(505, window.innerWidth * 0.49))),
         right: 0, top: 80, bottom: 80,
       };
       return { left: 0, right: 0, top: 0, bottom: Math.round(globeScene.clientHeight * 0.43) };

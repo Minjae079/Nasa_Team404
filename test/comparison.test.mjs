@@ -235,7 +235,7 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
     getZoom() { return this.zoom; }
     getCenter() { return this.center; }
     flyTo(options) { this.flight = options; }
-    jumpTo({ center, zoom }) { this.center = { lng: center[0], lat: center[1] }; if (zoom !== undefined) this.zoom = zoom; }
+    jumpTo({ center, zoom, bearing }) { this.center = { lng: center[0], lat: center[1] }; if (zoom !== undefined) this.zoom = zoom; if (bearing !== undefined) this.bearing = bearing; }
   }
   const pins = [];
   class Marker {
@@ -256,12 +256,16 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
     frames.delete(id);
     callback(time);
   }
-  const startLng = map.center.lng;
+  const { lng: startLng, lat: startLat } = map.center;
   tick(0); tick(16);
+  assert.ok(map.center.lat > startLat);
+  assert.ok(map.bearing > map.options.bearing && map.bearing < 0);
   assert.ok(map.center.lng < startLng);
   assert.ok(map.zoom > -0.75 && map.zoom < 2);
   for (let time = 80; time <= 3216; time += 64) tick(time);
   assert.equal(map.zoom, 2);
+  assert.equal(map.center.lat, 34);
+  assert.equal(map.bearing, 0);
   const arrivedLng = map.center.lng;
   tick(3280);
   assert.ok(map.center.lng < arrivedLng);
@@ -297,7 +301,7 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
   assert.equal(interrupted.frames.size, 0);
 });
 
-test('home camera padding follows responsive layout and clears for result selection', async () => {
+test('home camera padding follows responsive layout and reserves the wider comparison panel', async () => {
   class Map {
     constructor(options) { this.options = options; this.events = {}; this.padding = {}; }
     getCanvas() { return {setAttribute(){}}; }
@@ -322,9 +326,9 @@ test('home camera padding follows responsive layout and clears for result select
   await controller.openComparison(35,130);
   assert.equal(node("homeHero").inert,true);
   assert.equal(map.flight.duration,0);
-  assert.deepEqual(Object.values(map.padding),[0,0,0,0]);
+  assert.deepEqual(Object.values(map.padding),[627,0,80,80]);
   map.events.move();
-  assert.equal(updates.at(-1).offsetX,0);
+  assert.equal(updates.at(-1).offsetX,313.5);
   map.zoom = 15;
   controller.goHome();
   assert.equal(map.padding.left,410);
@@ -339,7 +343,7 @@ test('home camera padding follows responsive layout and clears for result select
   const smoothMap = smooth.controller.state().map;
   await smooth.controller.openComparison(35,130);
   assert.equal(smoothMap.flight.duration,1200);
-  assert.equal(smoothMap.flight.padding.left,0);
+  assert.equal(smoothMap.flight.padding.left,627);
   assert.equal(smoothMap.flight.easing(0),0);
   assert.equal(smoothMap.flight.easing(1),1);
   assert.ok(smoothMap.flight.easing(0.1) < 0.1);

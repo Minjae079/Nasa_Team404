@@ -102,3 +102,17 @@ button:disabled { opacity: .5; transform: none; }
  .stored-mode button { min-height: 32px; }
  .scene-globe .stored-comparison .sar-compare-grid { height: min(30dvh, 280px); }
 }
+
+.topbar {
+  background: linear-gradient(#071018f5, #071018dd);
+}
+@media (min-width: 801px) {
+  .topbar .topnav { margin-left: auto; }
+  .topbar .header-right { margin-right: auto; }
+}
+.model-results-launch, .map-toolbar .btn, .map-layer-toggle { border-radius: 6px; }
+.map-toolbar { align-items: stretch; }
+.map-toolbar .map-layer-toggle { align-items: center; }
+@media (min-width: 801px) {
+  .map-toolbar, .scene-globe.is-detail .coordinate-search { left: clamp(24px, 4.35vw, 76px); }
+}

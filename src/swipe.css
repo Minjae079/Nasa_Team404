@@ -420,3 +420,56 @@
   from { box-shadow: 0 0 0 0 #ff9b93a0, 0 0 13px #ff574d42; }
   to { box-shadow: 0 0 0 7px #ff9b9300, 0 0 13px #ff574d42; }
 }
+
+/* Make analysis the focus once a location is selected. */
+.scene-globe { --observation-width: clamp(460px, 44vw, 710px); }
+.sar-swipe-dialog, .model-results-dialog { background: #0c1b25f5; border-color: #41616b; border-radius: 14px; }
+@media (min-width: 901px) {
+  .scene-globe .sar-swipe-dialog { width: var(--observation-width); }
+  .scene-globe.is-comparing .coordinate-panel {
+    left: calc(var(--observation-width) + 18px);
+    width: min(330px, calc(100vw - var(--observation-width) - 120px));
+  }
+}
+
+.scene-globe .sar-swipe-dialog .sar-console-title-line h2 { font-size: clamp(19px, 1.9vw, 26px); }
+.scene-globe .sar-swipe-dialog .sar-console-title-line p { color: #a8bcc7; font-size: 11px; }
+.scene-globe .sar-swipe-dialog .sar-console-toolbar { gap: 8px; margin-bottom: 13px; }
+.scene-globe .sar-swipe-dialog .sar-console-modes { display: flex; flex-wrap: wrap; gap: 5px; padding: 0; background: transparent; }
+.scene-globe .sar-swipe-dialog .sar-console-modes button {
+  min-height: 32px; padding: 6px 10px; font-size: 11px; letter-spacing: 0;
+  border: 1px solid #4a6572; color: #dce7eb; background: #142833;
+}
+.scene-globe .sar-swipe-dialog .sar-console-modes button:hover { background: #263f49; }
+.scene-globe .sar-swipe-dialog .sar-console-modes button[aria-pressed='true'] {
+  background: var(--mint); color: #172b21; border-color: var(--mint);
+}
+.scene-globe .sar-swipe-dialog .sar-swipe-dates {
+  padding: 0 2px 10px; gap: 10px; font-size: 13px;
+}
+.sar-swipe-dates strong { font-size: 11px; text-transform: uppercase; color: #a8bac3; }
+.sar-swipe-dates time { color: #f0f5f6; font-weight: 650; }
+.scene-globe .sar-swipe-stage { border-color: transparent; background: transparent; }
+.sar-swipe-frame { border: 1px solid #526f7a; border-radius: 6px; }
+.sar-view-swipe .sar-swipe-image:not(.sar-change-image) { filter: contrast(1.05); }
+.sar-swipe-boundary {
+  background: var(--mint);
+  box-shadow: 0 0 0 1px #162620, 0 1px 8px #071016;
+}
+.sar-swipe-handle { background: var(--mint); }
+.sar-ai-caption {
+  display: flex; align-items: center; gap: 7px;
+  color: #d6e5ef; font-size: 11px; margin-top: 8px;
+}
+.sar-ai-caption > span { background: #55b7ff; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+
+.monitoring-site-pin[data-level] { --pin-color: #f3f6fb; background: transparent; border: 3px solid var(--pin-color); box-shadow: 0 2px 5px #000c; }
+.monitoring-site-pin[data-level='1'] { --pin-color: #a3efac; }
+.monitoring-site-pin[data-level='2'] { --pin-color: #ffbb72; }
+.monitoring-site-pin[data-level='3'] { --pin-color: #ff8c83; }
+
+@media (max-width: 560px) {
+  .scene-globe .sar-swipe-dialog .sar-console-modes button { padding-inline: 6px; font-size: 10px; }
+  .scene-globe .sar-swipe-dialog .sar-swipe-dates { font-size: 12px; }
+  .sar-swipe-dates strong { margin-right: 4px; }
+}
