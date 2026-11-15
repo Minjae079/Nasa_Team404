@@ -4,10 +4,12 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   const START = { center: [-86, 34], zoom: 2.0, bearing: 0, pitch: 0 };
   const INTRO_ZOOM = -0.75;
   const INTRO_CAMERA = {
-    center: [START.center[0] + 30, START.center[1] - 14],
+    center: [START.center[0] + 42, START.center[1] - 27],
     zoom: INTRO_ZOOM,
-    bearing: -17,
+    bearing: -22,
   };
+  const INTRO_DURATION_MS = 2800;
+  const ROTATION_RATE = .006;
   const homeZoom = () => window.innerWidth > 0 && window.innerWidth <= 900 ? 0.95 : START.zoom;
   const DETAIL_ZOOM = 6;
   const PHOTO_ZOOM = 2.2; // Slightly wider Earth framing while the analysis panel is open.
@@ -68,24 +70,28 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         let camera;
         if (introActive) {
           introElapsed += elapsed;
-          const progress = Math.min(introElapsed / 2650, 1);
-          const radius = (1 - progress) ** 2;
-          const angle = progress * Math.PI * .64;
-          const [lng, lat] = START.center;
-          const dx = INTRO_CAMERA.center[0] - lng;
-          const dy = INTRO_CAMERA.center[1] - lat;
+          const progress = Math.min(introElapsed / INTRO_DURATION_MS, 1);
+          const remaining = 1 - progress;
+          const [startLng, startLat] = INTRO_CAMERA.center;
+          const [endLng, endLat] = START.center;
+          const overshoot = Math.max(0, introElapsed - INTRO_DURATION_MS);
+          // The Bezier's final tangent matches the steady rotation in longitude.
+          const lng = remaining ** 3 * startLng
+            + 3 * remaining ** 2 * progress * (startLng - 5)
+            + 3 * remaining * progress ** 2 * (endLng + ROTATION_RATE * INTRO_DURATION_MS / 3)
+            + progress ** 3 * endLng;
+          const lat = remaining ** 3 * startLat
+            + 3 * remaining ** 2 * progress * (startLat + 12)
+            + (3 * remaining * progress ** 2 + progress ** 3) * endLat;
           camera = {
-            center: [
-              lng + radius * (dx * Math.cos(angle) - dy * Math.sin(angle)),
-              lat + radius * (dx * Math.sin(angle) + dy * Math.cos(angle)),
-            ],
-            zoom: INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * (1 - (1 - progress) ** 3),
-            bearing: progress === 1 ? START.bearing : INTRO_CAMERA.bearing * radius,
+            center: [lng - overshoot * ROTATION_RATE, lat],
+            zoom: INTRO_ZOOM + (homeZoom() - INTRO_ZOOM) * (1 - remaining ** 3),
+            bearing: progress === 1 ? START.bearing : INTRO_CAMERA.bearing * remaining ** 2,
           };
           if (progress === 1) introActive = false;
         } else {
           const { lng, lat } = map.getCenter();
-          camera = { center: [((lng - elapsed * .006 + 540) % 360) - 180, lat] };
+          camera = { center: [((lng - elapsed * ROTATION_RATE + 540) % 360) - 180, lat] };
         }
         map.jumpTo(camera);
       }
@@ -93,6 +99,19 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     }
     rotationFrame = window.requestAnimationFrame(rotate);
   }
+
+  const highRiskAreas = {
+    type: 'FeatureCollection',
+    features: monitoringSites.filter(site => site.level === 3 && site.bounds).flatMap(site => {
+      const [west, south, east, north] = site.bounds;
+      return [
+        { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [site.lng, site.lat] } },
+        { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+          [west, south], [east, south], [east, north], [west, north], [west, south],
+        ]] } },
+      ];
+    }),
+  };
 
   // A single MapLibre canvas renders the globe and local map.
   function initGlobe() {
@@ -104,6 +123,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
+            "high-risk-areas": { type: "geojson", data: highRiskAreas },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -123,7 +143,19 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
               "raster-brightness-min": 0.055,
               "raster-fade-duration": 400
             } },
-            { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } }
+            { id: "streets", type: "raster", source: "streets", layout: { visibility: "none" } },
+            {
+              id: "high-risk-observation-outline", type: "line", source: "high-risk-areas",
+              filter: ["==", ["geometry-type"], "Polygon"],
+              paint: { "line-color": "#ff5657", "line-width": 2.5 },
+            },
+            {
+              id: "high-risk-location-halo", type: "circle", source: "high-risk-areas",
+              filter: ["==", ["geometry-type"], "Point"], maxzoom: 7,
+              paint: { "circle-radius": 19, "circle-opacity": 0,
+                "circle-stroke-color": "#ff5657", "circle-stroke-width": 2,
+                "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 4, 1, 7, 0] },
+            },
           ],
           sky: { "sky-color": "#050b16", "horizon-color": "#bddfff",
             "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.85, 5, 0.85, 7, 0] }
@@ -203,6 +235,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       element.className = 'monitoring-site-pin';
       element.setAttribute('aria-label', `Open NISAR observations for ${site.title}`);
       element.dataset.level = String(site.level ?? 0);
+      element.innerHTML = '<svg viewBox="0 0 28 38" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M14 1a13 13 0 0 0-13 13c0 9 13 23 13 23s13-14 13-23A13 13 0 0 0 14 1Zm0 6.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Z"/></svg>';
       listen(element, 'pointerdown', event => {
         event.stopPropagation();
         if (!event.isPrimary || event.button !== 0) return;
@@ -219,7 +252,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         flyTo(site.lat, site.lng);
       });
       listen(element, 'dblclick', event => event.stopPropagation());
-      monitoringPins.push(new maplibregl.Marker({ element, opacityWhenCovered: 0 })
+      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0 })
         .setLngLat([site.lng, site.lat]).addTo(map));
     }
   }

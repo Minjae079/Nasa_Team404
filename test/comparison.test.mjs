@@ -262,13 +262,17 @@ test('globe rotates while approaching, stays unmarked until selection, and respe
   assert.ok(map.bearing > map.options.bearing && map.bearing < 0);
   assert.ok(map.center.lng < startLng);
   assert.ok(map.zoom > -0.75 && map.zoom < 2);
-  for (let time = 80; time <= 3216; time += 64) tick(time);
+  for (let time = 32; time <= 2784; time += 16) tick(time);
+  const beforeHandoff = map.center.lng;
+  tick(2800);
   assert.equal(map.zoom, 2);
   assert.equal(map.center.lat, 34);
   assert.equal(map.bearing, 0);
   const arrivedLng = map.center.lng;
-  tick(3280);
-  assert.ok(map.center.lng < arrivedLng);
+  tick(2816);
+  const introStep = arrivedLng - beforeHandoff;
+  const rotationStep = map.center.lng - arrivedLng;
+  assert.ok(Math.abs(introStep - rotationStep) < .006);
   assert.equal(map.zoom, 2);
   map.events.mousedown();
   assert.equal(frames.size, 0);
@@ -394,12 +398,11 @@ test('typed coordinates reuse geographic selection and the marker; invalid value
 
 
 test('a visible monitoring pin opens the comparison from the initial globe zoom', () => {
-  const clicks = {};
+  const pins = [];
   const selections = [];
   let stopped = false;
-  let pin;
   class Map {
-    constructor(options) { this.events = {}; this.zoom = options.zoom; }
+    constructor(options) { this.options = options; this.events = {}; this.zoom = options.zoom; }
     getCanvas() { return { setAttribute() {} }; }
     on(name, callback) { this.events[name] = callback; }
     getZoom() { return this.zoom; }
@@ -411,24 +414,30 @@ test('a visible monitoring pin opens the comparison from the initial globe zoom'
     easeTo(options) { this.flight = options; }
   }
   class Marker {
-    constructor() { pin = this; }
+    constructor(options) { this.options = options; pins.push(this); }
     setLngLat(point) { this.coords = point; return this; }
     addTo() { return this; }
     remove() {}
   }
   const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1 };
+  const high = { title: 'Chókwè', lat: -24.52, lng: 33.025, level: 3, bounds: [32.975, -24.566, 33.075, -24.474] };
   const { controller, frames } = frontend(async () => ({ok:false}), {Map, Marker}, false, {
-    monitoringSites: [site],
+    monitoringSites: [site, high],
     onSelection: point => selections.push([point.lat, point.lng]),
     createElement: () => ({
       dataset: {}, classList: { contains: () => false }, setAttribute() {},
-      addEventListener: (name, handler) => { clicks[name] = handler; },
+      events: {}, addEventListener(name, handler) { this.events[name] = handler; },
     }),
   });
   controller.initGlobe();
   const map = controller.state().map;
   assert.ok(map.getZoom() < 0);
-  assert.deepEqual(Array.from(pin.coords), [site.lng, site.lat]);
+  assert.deepEqual(Array.from(pins[0].coords), [site.lng, site.lat]);
+  assert.equal(pins[0].options.anchor, 'bottom');
+  const clicks = pins[0].options.element.events;
+  const areas = map.options.style.sources['high-risk-areas'].data.features;
+  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['Point', 'Polygon']);
+  assert.deepEqual(Array.from(areas[0].geometry.coordinates), [high.lng, high.lat]);
   map.events.load();
   assert.equal(frames.size, 1);
   clicks.pointerdown({ isPrimary: true, button: 0, stopPropagation() {} });

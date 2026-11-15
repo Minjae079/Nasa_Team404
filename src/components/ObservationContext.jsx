@@ -136,8 +136,8 @@ function formatMetric(key, metric) {
 // Presentation bands for independent context indicators, not flood thresholds.
 function indicatorLevel(key, value) {
   if (key === 'rainfall') return value < 10 ? 1 : value < 100 ? 2 : 3;
-  if (key === 'waterHistory') return value < 10 ? 1 : value < 30 ? 2 : 3;
-  return value >= -0.5 ? 1 : value >= -1 ? 2 : 3;
+  if (key === 'waterHistory') return value < 5 ? 0 : value < 20 ? 1 : value < 30 ? 2 : 3;
+  return value >= -0.5 ? 1 : value >= -1.5 ? 2 : 3;
 }
 
 // Keep scientific interpretation distinct from flood assessment.
