@@ -469,6 +469,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
     getBearing() { return 0; }
     getPitch() { return 0; }
     getLayer() { return false; }
+    getSource() { return { setData: data => { this.rings = data.features; } }; }
     stop() { stopped = true; }
     jumpTo({ zoom }) { if (zoom !== undefined) this.zoom = zoom; }
     setPaintProperty(layer, property, value) { this.paint ??= {}; this.paint[layer + property] = value; }
@@ -482,8 +483,9 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   }
   const site = { title: 'Sacramento Delta', lat: 38, lng: -121.6, level: 1, worldPin: { lat: -31, lng: 145 } };
   const high = { title: 'Chókwè', lat: -24.52, lng: 33.025, level: 3, bounds: [32.975, -24.566, 33.075, -24.474] };
+  const nearby = { title: 'Madison', lat: 43, lng: -89, level: 1, overviewOffset: { lat: 2, lng: -2 } };
   const { controller, frames } = frontend(async () => ({ok:false}), {Map, Marker}, false, {
-    monitoringSites: [site, high],
+    monitoringSites: [site, high, nearby],
     onSelection: point => selections.push([point.lat, point.lng]),
     createElement: () => ({
       dataset: {}, classList: { contains: () => false }, setAttribute() {},
@@ -495,7 +497,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.ok(map.getZoom() < 0);
   assert.equal(pins.length, 0);
   const areas = map.options.style.sources['monitoring-areas'].data.features;
-  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'LineString', 'Polygon']);
+  assert.deepEqual(Array.from(areas, feature => feature.geometry.type), ['LineString', 'LineString', 'Polygon', 'LineString']);
   assert.equal(areas[0].properties.level, 0);
   assert.equal(areas[1].properties.level, 3);
   const ring = areas[1].geometry.coordinates;
@@ -520,7 +522,17 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.equal(pins.length, 0);
   assert.equal(map.paint, undefined);
   tick(2800);
-  assert.equal(pins.length, 2);
+  assert.equal(pins.length, 3);
+  assert.deepEqual(Array.from(pins[2].coords), [-91, 45]);
+  map.zoom = 4;
+  map.events.zoom();
+  assert.deepEqual(Array.from(pins[2].coords), [-89, 43]);
+  const north = map.rings[3].geometry.coordinates[0];
+  assert.ok(Math.abs(north[0] + 89) < 1e-8);
+  assert.ok(Math.abs(north[1] - 44.8) < 1e-8);
+  map.zoom = 2;
+  map.events.zoom();
+  assert.deepEqual(Array.from(pins[2].coords), [-91, 45]);
   assert.equal(map.paint['high-risk-observation-outlineline-opacity'], 1);
   assert.equal(map.paint['monitoring-location-ringline-opacity'].at(-1), 0);
   assert.deepEqual(Array.from(pins[0].coords), [site.worldPin.lng, site.worldPin.lat]);
@@ -537,4 +549,7 @@ test('monitoring pins appear after the intro and open the comparison with one cl
   assert.deepEqual(selections, [[site.lat, site.lng]]);
   assert.equal(controller.state().mode, 'compare');
   assert.deepEqual(Array.from(map.flight.center), [site.lng, site.lat]);
+  pins[2].options.element.events.click({ stopPropagation() {} });
+  assert.deepEqual(selections.at(-1), [nearby.lat, nearby.lng]);
+  assert.deepEqual(Array.from(map.flight.center), [nearby.lng, nearby.lat]);
 });

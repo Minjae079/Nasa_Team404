@@ -268,6 +268,7 @@
     "title": "Madison · Lake Mendota",
     "lat": 43.105,
     "lng": -89.415,
+    "overviewOffset": { "lat": 2.2, "lng": -2.1 },
     "bounds": [
       -89.479833,
       43.057538,
@@ -295,6 +296,7 @@
     "title": "Atchafalaya Basin",
     "lat": 30.2,
     "lng": -91.53,
+    "overviewOffset": { "lat": 0.6, "lng": -2.9 },
     "bounds": [
       -91.556932,
       30.1766,

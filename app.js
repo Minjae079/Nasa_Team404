@@ -146,20 +146,44 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     rotationFrame = window.requestAnimationFrame(rotate);
   }
 
-  const monitoringAreas = {
-    type: 'FeatureCollection',
-    features: monitoringSites.flatMap(site => {
-      const level = site.worldPin ? 0 : site.level ?? 0;
-      const locator = { type: 'Feature', properties: { level }, geometry: globeLocatorRing(site.worldPin ?? site) };
-      if (level !== 3 || !site.bounds) return [locator];
-      const [west, south, east, north] = site.bounds;
-      return [locator, {
-        type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
-          [west, south], [east, south], [east, north], [west, north], [west, south],
-        ]] },
-      }];
-    }),
-  };
+  const hasOverviewOffsets = monitoringSites.some(site => site.overviewOffset);
+  let overviewSpread = 1;
+  function markerLocation(site) {
+    if (!site.overviewOffset) return site.worldPin ?? site;
+    return {
+      lat: site.lat + site.overviewOffset.lat * overviewSpread,
+      lng: site.lng + site.overviewOffset.lng * overviewSpread,
+    };
+  }
+  function monitoringAreas() {
+    return {
+      type: 'FeatureCollection',
+      features: monitoringSites.flatMap(site => {
+        const level = site.worldPin ? 0 : site.level ?? 0;
+        const locator = { type: 'Feature', properties: { level }, geometry: globeLocatorRing(markerLocation(site)) };
+        if (level !== 3 || !site.bounds) return [locator];
+        const [west, south, east, north] = site.bounds;
+        return [locator, {
+          type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[
+            [west, south], [east, south], [east, north], [west, north], [west, south],
+          ]] },
+        }];
+      }),
+    };
+  }
+  function updateOverviewSpread() {
+    if (!monitoringVisible || !hasOverviewOffsets) return;
+    // Update the rings at discrete zoom intervals to avoid rebuilding their data every frame.
+    const spread = Math.round(Math.max(0, Math.min(1, (3.5 - map.getZoom()) / 1.4)) * 12) / 12;
+    if (spread === overviewSpread) return;
+    overviewSpread = spread;
+    for (const { site, pin } of monitoringPins) {
+      if (!site.overviewOffset) continue;
+      const { lng, lat } = markerLocation(site);
+      pin.setLngLat([lng, lat]);
+    }
+    map.getSource?.('monitoring-areas')?.setData(monitoringAreas());
+  }
 
   function rotateDuringZoom({ center, zoom }) {
     if (!map || mode !== "globe" || introActive || document.hidden || reducedMotion.matches) return {};
@@ -184,7 +208,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         style: {
           version: 8, projection: { type: "globe" },
           sources: {
-            "monitoring-areas": { type: "geojson", data: monitoringAreas, tolerance: 0.15 },
+            "monitoring-areas": { type: "geojson", data: monitoringAreas(), tolerance: 0.15 },
             earth: { type: "raster", tileSize: 256, maxzoom: 8,
               tiles: ["https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg"],
               attribution: "Earth imagery: NASA Blue Marble / GIBS" },
@@ -240,6 +264,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       syncSkyCamera();
       map.on("zoom", () => {
         syncZoomMode();
+        updateOverviewSpread();
         if (resumeAfterInteraction) rotationResumesAfterZoom = true;
       });
       for (const eventName of ["mousedown", "touchstart", "wheel"]) {
@@ -330,7 +355,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
   function revealMonitoring() {
     if (disposed || !map || !mapLoaded || monitoringVisible) return;
     monitoringVisible = true;
-    if (monitoringAreas.features.length) {
+    if (monitoringSites.length) {
       map.setPaintProperty("high-risk-observation-outline", "line-opacity", 1);
       map.setPaintProperty("monitoring-location-ring", "line-opacity",
         ["interpolate", ["linear"], ["zoom"], 3, 1, 4.5, 0]);
@@ -339,7 +364,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       const element = document.createElement('button');
       element.type = 'button';
       element.className = 'monitoring-site-pin';
-      const pin = site.worldPin ?? site;
+      const location = markerLocation(site);
       const level = site.worldPin ? 0 : site.level ?? 0;
       const label = site.worldPin ? 'Observation shortcut' : level === 3 ? 'High screening level' : 'NISAR observation';
       element.setAttribute('aria-label', `${label}. Open NISAR observations for ${site.title}`);
@@ -364,9 +389,11 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
         flyTo(site.lat, site.lng);
       });
       listen(element, 'dblclick', event => event.stopPropagation());
-      monitoringPins.push(new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
-        .setLngLat([pin.lng, pin.lat]).addTo(map));
+      const pin = new maplibregl.Marker({ element, anchor: 'bottom', opacityWhenCovered: 0, subpixelPositioning: true })
+        .setLngLat([location.lng, location.lat]).addTo(map);
+      monitoringPins.push({ site, pin });
     }
+    updateOverviewSpread();
   }
 
   function showSelectionMarker(lat, lng) {
@@ -891,7 +918,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
       onSelection?.(null);
       comparisonRequestId++;
       listeners.splice(0).forEach(remove => remove());
-      monitoringPins.splice(0).forEach(pin => pin.remove());
+      monitoringPins.splice(0).forEach(({ pin }) => pin.remove());
       if (map) map.remove();
       map = null;
     },
