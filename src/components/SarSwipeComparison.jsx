@@ -195,7 +195,7 @@ export function SarSwipeComparison({
         </div>
       </div>
       </div>
-      <ObservationInsights />
+      <ObservationInsights sceneId={sceneId} />
       </div>
 
       {(failed || mismatch || overlayFailed || overlayMismatch || serviceState === 'error' || serviceState === 'setup') && <button className="sar-retry" type="button" onClick={onRefresh}>Retry images</button>}
