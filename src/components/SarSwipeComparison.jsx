@@ -103,9 +103,8 @@ export function SarSwipeComparison({
   }
 
   const aiReady = Boolean(sizes.ai && !aiFailed);
-  const displayed = mode === 'ai' && aiReady ? sizes.ai : before;
-  const aspectRatio = displayed ? `${displayed.width} / ${displayed.height}` : '1828 / 2048';
-  const imageAspect = displayed ? displayed.width / displayed.height : 1828 / 2048;
+  const aspectRatio = before ? `${before.width} / ${before.height}` : '1828 / 2048';
+  const imageAspect = before ? before.width / before.height : 1828 / 2048;
 
   return (
     <div className="sar-swipe-viewer">
@@ -223,7 +222,9 @@ export function SarSwipeComparison({
           </div>
         </div>
       </div>
-      {mode === 'ai' && <p className="sar-ai-caption"><span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.</p>}
+      {aiUrl && <p className="sar-ai-caption" aria-hidden={mode !== 'ai'}>
+        <span aria-hidden="true" /> Blue highlights experimental V1-long flood candidates.
+      </p>}
       </div>
       <ObservationInsights sceneId={sceneId} />
       </div>

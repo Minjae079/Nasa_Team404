@@ -20,7 +20,7 @@ export function GlobeScene({ selectedPoint, mapReady, onSelectCoordinates }) {
           <h1>See beyond<br /><span>the surface.</span></h1>
           <p className="hero-description">Select a colored marker to compare NISAR observations and explore flood candidates.</p>
           <div className="hero-actions">
-            <button className="btn btn-primary" id="exploreIIT">Explore Illinois Tech <span className="btn-arrow">↗</span></button>
+            <button className="btn btn-primary" id="exploreChicago">Explore Chicago <span className="btn-arrow">↗</span></button>
             <button className="btn btn-outline" id="learnMore">How it works <span className="btn-arrow">↗</span></button>
           </div>
           <div className="hero-meta">
@@ -38,7 +38,7 @@ export function GlobeScene({ selectedPoint, mapReady, onSelectCoordinates }) {
           <div className="control-separator"></div>
           <button id="resetGlobe" title="Reset globe" aria-label="Reset globe">⟲</button>
         </div>
-        <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> DOUBLE-CLICK TO EXPLORE</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · DOUBLE-TAP</span></div>
+        <div className="interaction-guide"><span className="desktop-gesture-text"><span className="gesture-icon">⟳</span> DRAG TO ROTATE <span className="guide-split">/</span> SCROLL TO ZOOM <span className="guide-split">/</span> DOUBLE-CLICK TO ZOOM</span><span className="mobile-gesture-text"><span className="gesture-icon">⟳</span> DRAG · PINCH · DOUBLE-TAP</span></div>
         <div id="mapLoadStatus" className="map-load-status" role="status" hidden></div>
         <div className="globe-bottom-right"><span className="square-marker"></span> 3D WORLD VIEW <span className="guide-split">·</span> EXPERIMENTAL</div>
       <ComparisonScene point={selectedPoint} /></section>);

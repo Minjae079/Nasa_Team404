@@ -283,6 +283,8 @@ test('globe rotates while approaching, resumes after a gesture, and respects mot
   map.events.mousedown();
   assert.equal(frames.size, 0);
   map.events.dblclick({lngLat:{lat:35,lng:130}});
+  assert.equal(pins.length, 0);
+  assert.equal(controller.selectCoordinates(35, 130), true);
   assert.equal(pins.length, 1);
   assert.deepEqual(Array.from(pins[0].coords), [130,35]);
   controller.goHome();
@@ -349,6 +351,10 @@ test('home camera padding follows responsive layout and reserves the wider compa
   const map = controller.state().map;
   assert.equal(map.padding.left,410);
   assert.equal(updates.at(-1).offsetX,205);
+  map.events.dblclick({ lngLat: { lng: -89, lat: 36 } });
+  assert.equal(controller.state().mode, 'globe');
+  assert.equal(map.flight.zoom, 3);
+  assert.deepEqual(Array.from(map.flight.center), [-89, 36]);
   await controller.openComparison(35,130);
   assert.equal(node("homeHero").inert,true);
   assert.equal(map.flight.duration,0);

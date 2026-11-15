@@ -258,7 +258,14 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           selectedLocation = true;
           showSelectionMarker(lat, lng);
           updateLocationPanel();
-        } else flyTo(lat, lng);
+        } else {
+          // Keep background double-clicks in the current view.
+          const zoom = Math.max(map.getZoom(), Math.min(map.getZoom() + 1, DETAIL_ZOOM - 0.1));
+          motionInterrupted = true;
+          stopGlobeMotion();
+          resumeAfterInteraction = mode === "globe";
+          moveSceneCamera({ center: [lng, lat], zoom });
+        }
       });
       map.on("load", () => {
         mapLoaded = true;
@@ -668,7 +675,7 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
           ? " Search service was also unavailable."
           : "";
         updateComparisonStatus(
-          `No two matching NISAR GCOV dates found at this location.${detail} Select another location or try Illinois Tech.`,
+          `No two matching NISAR GCOV dates found at this location.${detail} Select another location or try Chicago.`,
           "empty"
         );
         return;
@@ -799,9 +806,10 @@ export function createExplorer(maplibregl, { onSelection, onCamera, monitoringSi
     listen(document, "keydown", (event) => {
       if (event.key === "Escape") toggleModal(false);
     });
-    listen($("exploreIIT"), "click", () =>
-      flyTo(IIT.lat, IIT.lng, IIT.name)
-    );
+    listen($("exploreChicago"), "click", () => {
+      const chicago = monitoringSites.find(site => site.slug === "chicago") ?? IIT;
+      flyTo(chicago.lat, chicago.lng);
+    });
     listen($("jumpToIITFromMap"), "click", () =>
       openMap(IIT.lat, IIT.lng)
     );

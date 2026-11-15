@@ -374,8 +374,8 @@
   border-radius: 50%; background: #f3f6fb; cursor: pointer;
 }
 .monitoring-site-pin.maplibregl-marker-covered { visibility: hidden; pointer-events: none; }
-.monitoring-site-pin[data-level='1'] { background: #8de399; }
-.monitoring-site-pin[data-level='2'] { background: #ffbb72; }
+.monitoring-site-pin[data-level='1'] { background: #37dc74; }
+.monitoring-site-pin[data-level='2'] { background: #ff9d32; }
 .monitoring-site-pin[data-level='3'] { background: #ff8c83; }
 .monitoring-site-pin::before {
   content: "";
@@ -400,14 +400,14 @@
 .scene-globe .sar-swipe-dialog .sar-console-modes .sar-swipe-mode { padding-inline: 8px; }
 
 .sar-insight-button[data-indicator-level='0'] { --indicator-color: #f3f6fb; }
-.sar-insight-button[data-indicator-level='1'] { --indicator-color: #8de399; }
-.sar-insight-button[data-indicator-level='2'] { --indicator-color: #ffc27f; }
-.sar-insight-button[data-indicator-level='3'] { --indicator-color: #ff9b93; }
+.sar-insight-button[data-indicator-level='1'] { --indicator-color: #37dc74; }
+.sar-insight-button[data-indicator-level='2'] { --indicator-color: #ff9d32; }
+.sar-insight-button[data-indicator-level='3'] { --indicator-color: #ff514b; }
 
 .scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level] {
   color: var(--indicator-color);
-  border-color: color-mix(in srgb, var(--indicator-color) 40%, #263f4b);
-  background: color-mix(in srgb, var(--indicator-color) 11%, #10242f);
+  border-color: color-mix(in srgb, var(--indicator-color) 58%, #263f4b);
+  background: color-mix(in srgb, var(--indicator-color) 17%, #10242f);
 }
 .scene-globe .sar-swipe-dialog .sar-insight-button[data-indicator-level]:is(:hover, :focus-visible, [aria-expanded='true']) {
   border-color: var(--indicator-color);
@@ -418,7 +418,7 @@
   background: color-mix(in srgb, var(--indicator-color) 23%, #112330);
 }
 .scene-globe .sar-swipe-dialog .sar-siren-button[data-indicator-level='3'] {
-  box-shadow: 0 0 0 2px #ff9b9350, 0 0 13px #ff574d42;
+  box-shadow: 0 0 0 2px #ff514b50, 0 0 13px #ff574d42;
 }
 @media (prefers-reduced-motion: no-preference) {
   .scene-globe .sar-swipe-dialog .sar-siren-button[data-indicator-level='3'] {
@@ -426,8 +426,8 @@
   }
 }
 @keyframes sar-high-screening {
-  from { box-shadow: 0 0 0 0 #ff9b93a0, 0 0 13px #ff574d42; }
-  to { box-shadow: 0 0 0 7px #ff9b9300, 0 0 13px #ff574d42; }
+  from { box-shadow: 0 0 0 0 #ff514ba0, 0 0 13px #ff574d42; }
+  to { box-shadow: 0 0 0 7px #ff514b00, 0 0 13px #ff574d42; }
 }
 
 /* Make analysis the focus once a location is selected. */
@@ -486,6 +486,7 @@
   display: flex; align-items: center; gap: 7px;
   color: #d6e5ef; font-size: 11px; margin-top: 8px;
 }
+.sar-ai-caption[aria-hidden='true'] { visibility: hidden; }
 .sar-ai-caption > span { background: #55b7ff; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
 
 .monitoring-site-pin[data-level] {
@@ -497,9 +498,9 @@
   filter: drop-shadow(0 3px 3px #000c);
   pointer-events: none;
 }
-.monitoring-site-pin[data-level='1'] { --pin-color: #a3efac; }
-.monitoring-site-pin[data-level='2'] { --pin-color: #ffbb72; }
-.monitoring-site-pin[data-level='3'] { --pin-color: #ff6966; }
+.monitoring-site-pin[data-level='1'] { --pin-color: #37dc74; }
+.monitoring-site-pin[data-level='2'] { --pin-color: #ff9d32; }
+.monitoring-site-pin[data-level='3'] { --pin-color: #ff4944; }
 .sar-insight-rail .sar-insight-button[data-indicator-level='0'] { --indicator-color: #f3f6fb; }
 
 @media (max-width: 760px) { .sar-swipe-figure { --date-row-height: 48px; } }

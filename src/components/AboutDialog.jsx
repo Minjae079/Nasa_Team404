@@ -6,7 +6,7 @@ export function AboutDialog() {
       <button className="modal-close" id="closeAbout" aria-label="Close dialog">×</button>
       <span className="eyebrow"><span className="eyebrow-line"></span> HOW IT WORKS</span>
       <h2 id="modalTitle">From globe to ground.</h2>
-      <p>Use your mouse or touch to rotate the 3D Earth. Select a monitoring marker or enter coordinates to compare available observations. The Illinois Tech shortcut takes you straight to the planned study area.</p>
+      <p>Use your mouse or touch to rotate the 3D Earth. Select a monitoring marker or enter coordinates to compare available observations. Explore Chicago takes you straight to the Chicago study area.</p>
       <div className="modal-steps">
         <div><span>01</span><strong>Explore the globe</strong><p>Rotate, zoom, and choose a location.</p></div>
         <div><span>02</span><strong>Inspect the location</strong><p>Switch between street and satellite basemaps.</p></div>
